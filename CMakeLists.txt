@@ -33,13 +33,20 @@ if(ANDROID)
     mainwindow.h
     mainwindow.ui
   )
-else()
-  add_executable(CO2
+elseif(WIN32)
+  add_executable(CO2 WIN32
     main.cpp
     mainwindow.cpp
     mainwindow.h
     mainwindow.ui
   )
+else()
+    add_executable(CO2
+      main.cpp
+      mainwindow.cpp
+      mainwindow.h
+      mainwindow.ui
+    )
 endif()
 
 target_link_libraries(CO2 PRIVATE Qt5::Widgets Qt5::MultimediaWidgets Qt5::Network Qt5::Multimedia)

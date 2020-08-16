@@ -12,7 +12,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->comboBox->addItem("UDP");
     ui->comboBox->addItem("TCP");
     QAudioFormat format;
-    format.setSampleRate(128000);
+    format.setSampleRate(384000);
     format.setChannelCount(1);
     format.setSampleSize(16);
     format.setCodec("audio/pcm");
@@ -21,6 +21,10 @@ MainWindow::MainWindow(QWidget *parent)
     QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
     if (!info.isFormatSupported(format))
         format = info.nearestFormat(format);
+    ui->textBrowser->setText(ui->textBrowser->document()->toHtml() + "<p align=\"center\">" +
+                             QString::number(format.sampleRate()/1000) + " kHz " +
+                             QString::number(format.channelCount()) + " Channel " +
+                             format.codec() + " codec </p>");
     input = new QAudioInput(format);
     output = new QAudioOutput(format);
     device = output->start();
@@ -43,7 +47,7 @@ void MainWindow::playData()
             device->write(data.data(), data.size());
             frames_sks++;
             ui->label->setText("Tx:"+ udp->peerAddress().toString()+ " Rx Frames: " + QString::number(frames_sks));
-            ui->textBrowser->document()->setPlainText(data.left(ui->textBrowser->widthMM()*ui->textBrowser->heightMM() / 12).toHex(' '));
+      //      ui->textBrowser->document()->setPlainText(data.left(ui->textBrowser->widthMM()*ui->textBrowser->heightMM() / 12).toHex(' '));
         }
     }
     else if (mode == TCP)
@@ -53,7 +57,7 @@ void MainWindow::playData()
         device->write(data.data(), data.size());
         frames_sks++;
         ui->label->setText("Tx:"+ tcpC->peerAddress().toString()+ " Rx Frames: " + QString::number(frames_sks));
-        ui->textBrowser->document()->setPlainText(data.left(ui->textBrowser->widthMM()*ui->textBrowser->heightMM() / 12).toHex(' '));
+       // ui->textBrowser->document()->setPlainText(data.left(ui->textBrowser->widthMM()*ui->textBrowser->heightMM() / 12).toHex(' '));
     }
 }
 
