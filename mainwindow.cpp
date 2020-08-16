@@ -12,7 +12,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->comboBox->addItem("UDP");
     ui->comboBox->addItem("TCP");
     QAudioFormat format;
-    format.setSampleRate(384000);
+    format.setSampleRate(128000);
     format.setChannelCount(1);
     format.setSampleSize(16);
     format.setCodec("audio/pcm");
@@ -21,14 +21,13 @@ MainWindow::MainWindow(QWidget *parent)
     QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
     if (!info.isFormatSupported(format))
         format = info.nearestFormat(format);
-    ui->textBrowser->setText(ui->textBrowser->document()->toHtml() + "<p align=\"center\">" +
-                             QString::number(format.sampleRate()/1000) + " kHz " +
+    ui->label_2->setText(    QString::number(format.sampleRate()/1000) + "kHz " +
                              QString::number(format.channelCount()) + " Channel " +
-                             format.codec() + " codec </p>");
+                             format.codec() + " codec");
     input = new QAudioInput(format);
     output = new QAudioOutput(format);
     device = output->start();
-
+    ui->label_2->setDisabled(true);
     ui->textBrowser->setDisabled(true);
 }
 
@@ -68,6 +67,7 @@ void MainWindow::on_pushButton_clicked()
     ui->lineEdit->setDisabled(true);
     ui->pushButton->setDisabled(true);
     ui->pushButton->setFlat(true);
+    ui->hz->setDisabled(true);
 
     if (mode == UDP){
         udp->connectToHost(ui->lineEdit->text(), 1002);
@@ -139,6 +139,7 @@ void MainWindow::on_comboBox_currentIndexChanged(const QString &arg1)
                         ui->lineEdit->setDisabled(true);
                         ui->pushButton->setDisabled(true);
                         ui->pushButton->setFlat(true);
+                        ui->hz->setDisabled(true);
                         ui->label->setText("Accepted Connection From " + tcpC->peerAddress().toString());
                         input->start(tcpC);
                         ui->pushButton->setText("Passive Connected");
@@ -148,4 +149,26 @@ void MainWindow::on_comboBox_currentIndexChanged(const QString &arg1)
             }
         } else
             assert(false);
+}
+
+void MainWindow::on_hz_currentTextChanged(const QString &arg1)
+{
+    QAudioFormat format;
+    format.setSampleRate(arg1.toInt());
+    format.setChannelCount(1);
+    format.setSampleSize(16);
+    format.setCodec("audio/pcm");
+    format.setByteOrder(QAudioFormat::LittleEndian);
+    format.setSampleType(QAudioFormat::UnSignedInt);
+    QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
+    if (!info.isFormatSupported(format))
+        format = info.nearestFormat(format);
+    ui->label_2->setText(    QString::number(format.sampleRate()/1000) + "kHz " +
+                             QString::number(format.channelCount()) + " Channel " +
+                             format.codec() + " codec");
+    input->deleteLater();
+    output->deleteLater();
+    input = new QAudioInput(format);
+    output = new QAudioOutput(format);
+    device = output->start();
 }

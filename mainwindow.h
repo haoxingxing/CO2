@@ -28,6 +28,8 @@ private slots:
 
     void on_comboBox_currentIndexChanged(const QString &arg1);
 
+    void on_hz_currentTextChanged(const QString &arg1);
+
 private:
     long long frames_sks = 0;
     Ui::MainWindow *ui;
