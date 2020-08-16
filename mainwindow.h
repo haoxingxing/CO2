@@ -31,7 +31,6 @@ private slots:
     void on_hz_currentTextChanged(const QString &arg1);
 
 private:
-    long long frames_sks = 0;
     Ui::MainWindow *ui;
 
     QUdpSocket *udp;
@@ -46,5 +45,8 @@ private:
 
     QAudioOutput* output;
     QAudioInput* input;
+
+    bool isconnected = false;
+    bool isudpplaying = false;
 };
 #endif // MAINWINDOW_H
