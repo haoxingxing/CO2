@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 project(CO2 LANGUAGES CXX)
+set (CMAKE_PREFIX_PATH "C:\\Qt\\Qt5.14.2\\5.14.2\\msvc2017_64")
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -32,6 +33,8 @@ if(ANDROID)
     mainwindow.cpp
     mainwindow.h
     mainwindow.ui
+    p2pnetwork.cpp
+    p2pnetwork.h
   )
 elseif(WIN32)
   add_executable(CO2 WIN32
@@ -39,6 +42,8 @@ elseif(WIN32)
     mainwindow.cpp
     mainwindow.h
     mainwindow.ui
+    p2pnetwork.cpp
+    p2pnetwork.h
   )
 else()
     add_executable(CO2
@@ -46,6 +51,8 @@ else()
       mainwindow.cpp
       mainwindow.h
       mainwindow.ui
+      p2pnetwork.cpp
+      p2pnetwork.h
     )
 endif()
 

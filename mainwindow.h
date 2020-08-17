@@ -2,12 +2,9 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QUdpSocket>
-#include <QNetworkDatagram>
 #include <QAudioOutput>
 #include <QAudioInput>
-#include <QTcpServer>
-#include <QTcpSocket>
+#include "p2pnetwork.h"
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -21,6 +18,7 @@ public:
     ~MainWindow();
 public slots:
     void playData();
+    void SwitchedNetwork(P2PNetwork::protocol);
 private slots:
     void on_pushButton_clicked();
 
@@ -31,22 +29,19 @@ private slots:
     void on_hz_currentTextChanged(const QString &arg1);
 
 private:
+    void switchAudioSample(int target);
+    void switchNetwork(P2PNetwork::protocol);
     Ui::MainWindow *ui;
 
-    QUdpSocket *udp;
-    QTcpSocket *tcpC;
-    QTcpServer *tcpS;
 
-    enum _mode{
-        UDP,TCP,None
-    }mode = None;
+    QIODevice *device = nullptr;
 
-    QIODevice *device;
-
-    QAudioOutput* output;
-    QAudioInput* input;
-
+    QAudioOutput* output = nullptr;
+    QAudioInput* input = nullptr;
+    QAudioFormat format;
     bool isconnected = false;
     bool isudpplaying = false;
+
+    P2PNetwork *p2p;
 };
 #endif // MAINWINDOW_H
