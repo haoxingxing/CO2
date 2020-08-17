@@ -73,8 +73,7 @@ void P2PNetwork::connectToHost(const QString& host, int port)
 	}
 	if (_protocol == TCP)
 	{
-		destoryTCP();
-		_protocol = TCP;
+		destoryTcpServer();
 		CurTCPSTATUS = TCONNECTING;
 		tcpC = new QTcpSocket(this);
 		waitTcpConnected = new QTimer(this);
@@ -100,7 +99,6 @@ void P2PNetwork::connectToHost(const QString& host, int port)
 		{
 			emit disconnected(); //CleanUp Or Crash
 			destoryTcpSocket();
-			CurTCPSTATUS = TBLANK;
 			switchProtocol(None);
 		});
 		waitTcpConnected->start(5000);
@@ -123,9 +121,11 @@ void P2PNetwork::destoryTCP()
 		break;
 	case TCONNECTED:
 		destoryTcpSocket();
+		CurTCPSTATUS = TBLANK;
 		break;
 	case TCONNECTING:
 		destoryTcpSocket();
+		CurTCPSTATUS = TBLANK;
 		break;
 	case TBLANK:
 		break;

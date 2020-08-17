@@ -5,3 +5,4 @@
 /.vs
 /out/build/x64-Debug (默认值)
 *.user
+/out/build
