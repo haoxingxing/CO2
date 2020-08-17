@@ -21,12 +21,25 @@ MainWindow::MainWindow(QWidget *parent)
     connect(p2p, &P2PNetwork::disconnected, this, [&]
     {
             switchAudioSample(ui->hz->currentText().toInt());
+            ui->comboBox->setDisabled(false);
+            ui->lineEdit->setDisabled(false);
+            ui->hz->setDisabled(false);
+            ui->pushButton->setText("Connect");
+            isconnected = false;
     });
 
     connect(p2p, &P2PNetwork::connected, this, [&] {
+        ui->comboBox->setDisabled(true);
+        ui->lineEdit->setDisabled(true);
+        ui->hz->setDisabled(true);
         connect(p2p->getSocket(), &QAbstractSocket::readyRead, this, &MainWindow::playData);
         input->start(p2p->getSocket());
+        ui->pushButton->setText("Disconnect");
+        isconnected = true;
+
         });
+
+    connect(p2p, &P2PNetwork::protocolSwitched, this, &MainWindow::SwitchedNetwork);
     //ui->textBrowser->setDisabled(true);
 }
 
@@ -36,6 +49,15 @@ MainWindow::~MainWindow()
 }
 void MainWindow::SwitchedNetwork(P2PNetwork::protocol pro)
 {
+	if (pro == P2PNetwork::None)
+	{
+        if (ui->comboBox->currentText() == "UDP")
+            switchNetwork(P2PNetwork::UDP);
+        else if (ui->comboBox->currentText() == "TCP")
+            switchNetwork(P2PNetwork::TCP);
+        else
+            assert(false);
+	}
 }
 void MainWindow::playData()
 {
@@ -46,21 +68,16 @@ void MainWindow::playData()
 
 void MainWindow::on_pushButton_clicked()
 {
-    ui->comboBox->setDisabled(!isconnected);
-    ui->lineEdit->setReadOnly(!isconnected);
-    ui->lineEdit->setDisabled(!isconnected);
-    ui->hz->setDisabled(!isconnected);
+    ui->comboBox->setDisabled(true);
+    ui->lineEdit->setDisabled(true);
+    ui->hz->setDisabled(true);
     if (!isconnected) {
+        ui->pushButton->setText("Connecting");
         p2p->connectToHost(ui->lineEdit->text(), 1002);
-        isconnected = true;
-        ui->pushButton->setText("Disconnect");
-
     }
     else
     {
         p2p->disconnectFromHost();
-        ui->pushButton->setText("Connect");
-        isconnected = false;
     }   
 
 }
