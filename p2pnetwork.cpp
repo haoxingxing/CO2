@@ -151,12 +151,21 @@ void P2PNetwork::destoryUDP()
 
 void P2PNetwork::initTCP()
 {
+	destoryUDP();
+	destoryTCP();
+	_protocol = TCP;
 	qDebug() << "Initialize TCP";
 	tcpS = new QTcpServer(this);
 	tcpS->setMaxPendingConnections(1);
 	connect(tcpS, &QTcpServer::newConnection, this, [&]
 	{
+		tcpS->disconnect();
 		tcpC = tcpS->nextPendingConnection();
+		if (tcpC == nullptr)
+		{
+			initTCP();
+			return;
+		}
 		tcpC->setParent(this);
 		CurTCPSTATUS = TCONNECTED;
 		destoryTcpServer();
@@ -175,6 +184,9 @@ void P2PNetwork::initTCP()
 
 void P2PNetwork::initUDP()
 {
+	destoryUDP();
+	destoryTCP();
+	_protocol = UDP;
 	qDebug() << "Initialize UDP";
 	udp = new QUdpSocket(this);
 	udp->bind(QHostAddress::Any, port);
