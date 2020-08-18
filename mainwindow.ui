@@ -137,16 +137,6 @@ p, li { white-space: pre-wrap; }
         <string>128000</string>
        </property>
       </item>
-      <item>
-       <property name="text">
-        <string>256000</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>384000</string>
-       </property>
-      </item>
      </widget>
     </item>
     <item row="2" column="1">
