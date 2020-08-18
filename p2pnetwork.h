@@ -8,7 +8,7 @@
 
 class P2PNetwork : public QObject
 {
-	Q_OBJECT
+Q_OBJECT
 public:
 	enum protocol
 	{
