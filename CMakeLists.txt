@@ -34,16 +34,17 @@ if(ANDROID)
     mainwindow.ui
     p2pnetwork.cpp
     p2pnetwork.h
+    "tools.h"
   )
 elseif(WIN32)
-  add_executable(CO2 WIN32
+  add_executable(CO2
     main.cpp
     mainwindow.cpp
     mainwindow.h
     mainwindow.ui
     p2pnetwork.cpp
     p2pnetwork.h
-  )
+   "tools.h")
 else()
     add_executable(CO2
       main.cpp
@@ -52,6 +53,7 @@ else()
       mainwindow.ui
       p2pnetwork.cpp
       p2pnetwork.h
+      "tools.h"
     )
 endif()
 

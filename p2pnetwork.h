@@ -33,7 +33,7 @@ private:
 	void initUDP();
 
 	void restartTCP();
-
+	void restartUDP();
 	QTimer* waitTcpConnected = nullptr;
 	QUdpSocket* udp = nullptr;
 	QTcpSocket* tcpC = nullptr;
