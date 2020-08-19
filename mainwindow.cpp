@@ -267,8 +267,8 @@ void MainWindow::readMsg()
 		DEBUG << p2p_msg->getSocket()->peerAddress().toString() << "W" << data.length();
 		rcur += data.length();
 		ui->msg_status->setText(
-			"Recving " + QString::number((1.0L * rcur / rsize) * 100.0, 'f', 2) + "% " +
-			QString::number(0.001L * (1.0L * rcur / startrecv.elapsed()), 'f', 2) + " MB/s " +
+			"Recving " + QString::number(100.0 * rcur / rsize , 'f', 2) + "% " +
+			QString::number(0.001 * rcur / startrecv.elapsed(), 'f', 2) + " MB/s " +
 			QString::number(rcur / 1000000.0, 'f', 2) + "/" + QString::number(rsize / 1000000.0, 'f', 2) + " MB");
 		file->write(data);
 		p2p_msg->getSocket()->write("4\n");
@@ -298,9 +298,9 @@ void MainWindow::readMsg()
 			ui->msg_status->setText(
 				"Sending " + QString::number(cur * 1.0 / size * 100, 'f', 2) + "% " + (startsend.elapsed() > 0
 					                                                                       ? QString::number(
-						                                                                       0.001L * (1.0L * cur
+						                                                                       0.001 * cur
 							                                                                       / startsend.
-							                                                                       elapsed()), 'f',
+							                                                                       elapsed(), 'f',
 						                                                                       2)
 					                                                                       : "NaN Speed") + " MB/s "
 				+ QString::number(cur / 1000000.0, 'f', 2) + "/" + QString::number(size / 1000000.0, 'f', 2) +
