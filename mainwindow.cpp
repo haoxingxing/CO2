@@ -188,7 +188,7 @@ void MainWindow::switchNetwork(P2PNetwork::protocol p)
 
 void MainWindow::on_msg_send_clicked() const
 {
-	p2p_msg->getSocket()->write("0" + ui->msg->text().toUtf8().toHex() + "\n");
+	p2p_msg->getSocket()->write("0" + ui->msg->text().toUtf8().toBase64() + "\n");
 	ui->msg_2->append("You: " + ui->msg->text());
 	ui->msg->clear();
 }
@@ -224,7 +224,7 @@ void MainWindow::on_pushButton_2_clicked()
 	ui->msg_2->append("File Transfer Started Default File Name: " + x);
 	DEBUG << "File Transfer Started Default File Name: " + x;
 	p2p_msg->getSocket()->write(
-		"1" + x.toUtf8().toBase64().replace('\n', '\u0001') + " " + QString::number(size).toUtf8() + "\n");
+		"1" + x.toUtf8().toBase64() + " " + QString::number(size).toUtf8() + "\n");
 	SM = SWaitRepsone;
 }
 
@@ -235,11 +235,10 @@ void MainWindow::readMsg()
 		return;
 	QByteArray data = readbuf.chopped(1);
 	readbuf.clear();
-	DEBUG << data;
 	switch (data.front())
 	{
 	case '0':
-		ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "]: " + QByteArray::fromHex(data.mid(1)));
+		ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "]: " + QByteArray::fromBase64(data.mid(1)));
 		break;
 	case '1':
 		{
@@ -263,7 +262,7 @@ void MainWindow::readMsg()
 	case '2':
 		// Write to File Selected
 		assert(RM != Transforming);
-		data = QByteArray::fromBase64(data.mid(1).replace('\u0001', '\n'));
+		data = QByteArray::fromBase64(data.mid(1));
 		DEBUG << p2p_msg->getSocket()->peerAddress().toString() << "W" << data.length();
 		rcur += data.length();
 		ui->msg_status->setText(
@@ -305,7 +304,7 @@ void MainWindow::readMsg()
 					                                                                       : "NaN Speed") + " MB/s "
 				+ QString::number(cur / 1000000.0, 'f', 2) + "/" + QString::number(size / 1000000.0, 'f', 2) +
 				" MB");
-			p2p_msg->getSocket()->write("2" + d.toBase64().replace('\n', '\u0001') + "\n");
+			p2p_msg->getSocket()->write("2" + d.toBase64() + "\n");
 		}
 		else
 		{
