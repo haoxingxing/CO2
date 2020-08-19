@@ -37,7 +37,7 @@ if(ANDROID)
     "tools.h"
   )
 elseif(WIN32)
-  add_executable(CO2
+  add_executable(CO2 WIN32
     main.cpp
     mainwindow.cpp
     mainwindow.h
