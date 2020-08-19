@@ -5,6 +5,9 @@
 #include <QAudioOutput>
 #include <QAudioInput>
 #include <QEvent>
+#include <QElapsedTimer>
+#include <QFile>
+#include <QEventLoop>
 #include "p2pnetwork.h"
 QT_BEGIN_NAMESPACE
 
@@ -40,6 +43,7 @@ private slots:
 
 	void on_pushButton_2_clicked();
 
+	void readMsg();
 private:
 	void switchAudioSample(int target);
 	void switchNetwork(P2PNetwork::protocol);
@@ -55,5 +59,23 @@ private:
 	bool ismsgconnected = false;
 	P2PNetwork* p2p;
 	P2PNetwork* p2p_msg;
+
+	enum RecvMode
+	{
+		NotStarted,Transforming,EndFile
+	}RM = NotStarted;
+	QFile *file = nullptr;
+	QElapsedTimer startrecv;
+	enum SendMode
+	{
+		SNotStarted, SWaitRepsone,STransforming
+	}SM = SNotStarted;
+	QFile* sf = nullptr;
+	QElapsedTimer startsend ;
+	QByteArray readbuf;
+	unsigned long long cur = 0;
+	unsigned long long size = 0;
+	unsigned long long rcur = 0;
+	unsigned long long rsize = 0;
 };
 #endif // MAINWINDOW_H
