@@ -188,7 +188,7 @@ void MainWindow::switchNetwork(P2PNetwork::protocol p)
 
 void MainWindow::on_msg_send_clicked() const
 {
-	p2p_msg->getSocket()->write("0" + ui->msg->text().toUtf8() + "\n");
+	p2p_msg->getSocket()->write("0" + ui->msg->text().toUtf8().toHex() + "\n");
 	ui->msg_2->append("You: " + ui->msg->text());
 	ui->msg->clear();
 }
@@ -235,11 +235,11 @@ void MainWindow::readMsg()
 		return;
 	QByteArray data = readbuf.chopped(1);
 	readbuf.clear();
-
+	DEBUG << data;
 	switch (data.front())
 	{
 	case '0':
-		ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "]: " + data.mid(1));
+		ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "]: " + QByteArray::fromHex(data.mid(1)));
 		break;
 	case '1':
 		{
