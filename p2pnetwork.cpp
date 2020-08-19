@@ -118,7 +118,7 @@ void P2PNetwork::connectToHost(const QString& host, int port)
 	getSocket()->connectToHost(host, port);
 }
 
-void P2PNetwork::disconnectFromHost()
+void P2PNetwork::disconnectFromHost() const
 {
 	switch (_protocol)
 	{
@@ -214,7 +214,7 @@ void P2PNetwork::destoryUDP()
 	{
 		emit disconnected();
 	}
-	udp->disconnect();
+	DEBUG << "Disconnect SIGNAL/SLOT" << udp->disconnect();
 	udp->deleteLater();
 	udp = nullptr;
 	CurUDPSTATUS = UBLANK;
@@ -254,7 +254,7 @@ void P2PNetwork::initTCP()
 
 void P2PNetwork::destoryTcpServer()
 {
-	tcpS->disconnect();
+	DEBUG << "Disconnect SIGNAL/SLOT" << tcpS->disconnect();
 	tcpS->deleteLater();
 	tcpS = nullptr;
 	DEBUG << "TCP Server Destoryed" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[CurUDPSTATUS]
@@ -268,7 +268,7 @@ void P2PNetwork::destoryTcpSocket()
 		emit disconnected();
 		tcpC->disconnectFromHost();
 	}
-	tcpC->disconnect();
+	DEBUG << "Disconnect SIGNAL/SLOT" << tcpC->disconnect();
 	tcpC->deleteLater();
 	tcpC = nullptr;
 	CurTCPSTATUS = TBLANK;

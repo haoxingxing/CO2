@@ -21,7 +21,7 @@ public:
 	void switchProtocol(protocol target);
 	QAbstractSocket* getSocket() const;
 	void connectToHost(const QString& host, int port);
-	void disconnectFromHost();
+	void disconnectFromHost() const;
 signals:
 	void disconnected();
 	void connected();

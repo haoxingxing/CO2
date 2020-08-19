@@ -92,8 +92,8 @@ MainWindow::MainWindow(QWidget* parent)
 	});
 	connect(ui->msg, &QLineEdit::returnPressed, this, [&]
 	{
-			if (ismsgconnected)
-				on_msg_send_clicked();
+		if (ismsgconnected)
+			on_msg_send_clicked();
 	});
 	connect(p2p, &P2PNetwork::protocolSwitched, this, &MainWindow::SwitchedNetwork);
 	//ui->textBrowser->setDisabled(true);
@@ -106,13 +106,13 @@ MainWindow::~MainWindow()
 	delete ui;
 }
 
-void MainWindow::SwitchedNetwork(P2PNetwork::protocol pro)
+void MainWindow::SwitchedNetwork(P2PNetwork::protocol pro) const
 {
 	DEBUG << pro;
 	ui->status->setText("Ready");
 }
 
-void MainWindow::playData()
+void MainWindow::playData() const
 {
 	ui->status->setText("Playing");
 	QByteArray data;
@@ -120,7 +120,7 @@ void MainWindow::playData()
 	device->write(data.data(), data.size());
 }
 
-void MainWindow::on_pushButton_clicked()
+void MainWindow::on_pushButton_clicked() const
 {
 	ui->comboBox->setDisabled(true);
 	ui->lineEdit->setDisabled(true);
@@ -136,13 +136,13 @@ void MainWindow::on_pushButton_clicked()
 	}
 }
 
-void MainWindow::on_InVol_valueChanged(int value)
+void MainWindow::on_InVol_valueChanged(int value) const
 {
 	DEBUG << value << value / 99.0;
 	input->setVolume(value / 99.0);
 }
 
-void MainWindow::on_comboBox_currentIndexChanged(const QString& arg1)
+void MainWindow::on_comboBox_currentIndexChanged(const QString& arg1) const
 {
 	if (arg1 == "UDP")
 	{
@@ -164,7 +164,7 @@ void MainWindow::on_hz_currentTextChanged(const QString& arg1)
 void MainWindow::switchAudioSample(int target)
 {
 	format.setSampleRate(target);
-	QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
+	const QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
 	if (!info.isFormatSupported(format))
 		format = info.nearestFormat(format);
 	ui->label_2->setText(QString::number(format.sampleRate() / 1000.0) + "kHz " +
@@ -186,14 +186,14 @@ void MainWindow::switchNetwork(P2PNetwork::protocol p)
 	p2p->switchProtocol(p);
 }
 
-void MainWindow::on_msg_send_clicked()
+void MainWindow::on_msg_send_clicked() const
 {
 	p2p_msg->getSocket()->write("0" + ui->msg->text().toUtf8() + "\n");
 	ui->msg_2->append("You: " + ui->msg->text());
 	ui->msg->clear();
 }
 
-void MainWindow::on_msg_conn_clicked()
+void MainWindow::on_msg_conn_clicked() const
 {
 	ui->msg_connect->setDisabled(true);
 	if (!ismsgconnected)
@@ -209,65 +209,67 @@ void MainWindow::on_msg_conn_clicked()
 
 void MainWindow::on_pushButton_2_clicked()
 {
-
-	auto x = QFileDialog::getOpenFileName(this, "Select one  or more files to transfer");
-		sf = new QFile(x);
-		if (!sf->exists())
-		{
-			QMessageBox::critical(this, "File doesn't exist", "Unable to send file");
-			return;
-		}
-		ui->pushButton_2->setDisabled(true);
-		ui->pushButton_2->setText("Sending");
-		sf->open(QIODevice::ReadOnly);
-		size = sf->size();
-		cur = 0;
-		ui->msg_2->append("File Transfer Started Default File Name: " + x);
-		DEBUG << "File Transfer Started Default File Name: " + x;
-		p2p_msg->getSocket()->write("1" + x.toUtf8().toBase64().replace('\n', '\u0001') + " " + QString::number(size).toUtf8() + "\n");
-		SM = SWaitRepsone;
-
+	const auto x = QFileDialog::getOpenFileName(this, "Select one  or more files to transfer");
+	sf = new QFile(x);
+	if (!sf->exists())
+	{
+		QMessageBox::critical(this, "File doesn't exist", "Unable to send file");
+		return;
+	}
+	ui->pushButton_2->setDisabled(true);
+	ui->pushButton_2->setText("Sending");
+	sf->open(QIODevice::ReadOnly);
+	size = sf->size();
+	cur = 0;
+	ui->msg_2->append("File Transfer Started Default File Name: " + x);
+	DEBUG << "File Transfer Started Default File Name: " + x;
+	p2p_msg->getSocket()->write(
+		"1" + x.toUtf8().toBase64().replace('\n', '\u0001') + " " + QString::number(size).toUtf8() + "\n");
+	SM = SWaitRepsone;
 }
 
 void MainWindow::readMsg()
 {
-	QByteArray data;
 	readbuf.append(p2p_msg->getSocket()->readLine());
 	if (readbuf.back() != '\n')
 		return;
-	else
-	{
-		data = readbuf.chopped(1);
-		readbuf.clear();
-	}
-	
+	QByteArray data = readbuf.chopped(1);
+	readbuf.clear();
+
 	switch (data.front())
 	{
 	case '0':
 		ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "]: " + data.mid(1));
 		break;
-	case '1': {
-		auto n = data.mid(1).split(' ');
-		ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "] File Transfer Started Default File Name: " + QByteArray::fromBase64(n[0]));
-		file = new QFile(QFileDialog::getSaveFileName(this, "Find place to drop", QByteArray::fromBase64(n[0])), this);
-		rsize = n[1].toULongLong();
-		rcur = 0;
-		RM = Transforming;
-		file->open(QIODevice::WriteOnly);
-		p2p_msg->getSocket()->write("4\n");
-		startrecv.start();
-		ui->pushButton_2->setText("Recving");
-		ui->pushButton_2->setDisabled(true);
-		// Start File Trans With Filename 
-		break;
-	}
+	case '1':
+		{
+			auto n = data.mid(1).split(' ');
+			ui->msg_2->append(
+				"[" + p2p_msg->getSocket()->peerAddress().toString() + "] File Transfer Started Default File Name: "
+				+ QByteArray::fromBase64(n[0]));
+			file = new QFile(QFileDialog::getSaveFileName(this, "Find place to drop", QByteArray::fromBase64(n[0])),
+			                 this);
+			rsize = n[1].toULongLong();
+			rcur = 0;
+			RM = Transforming;
+			file->open(QIODevice::WriteOnly);
+			p2p_msg->getSocket()->write("4\n");
+			startrecv.start();
+			ui->pushButton_2->setText("Recving");
+			ui->pushButton_2->setDisabled(true);
+			// Start File Trans With Filename 
+			break;
+		}
 	case '2':
 		// Write to File Selected
 		assert(RM != Transforming);
 		data = QByteArray::fromBase64(data.mid(1).replace('\u0001', '\n'));
 		DEBUG << p2p_msg->getSocket()->peerAddress().toString() << "W" << data.length();
 		rcur += data.length();
-		ui->msg_status->setText("Recving " + QString::number(rcur * 1.0 / rsize * 100,'f',2) + "% " + QString::number(0.001 * (rcur / startrecv.elapsed()), 'f', 2) + " MB/s " + QString::number(rcur / 1000000.0, 'f', 2) + "/" + QString::number(rsize/1000000.0, 'f', 2) + " MB");
+		ui->msg_status->setText(
+			"Recving " + QString::number((1.0L * rcur / rsize) * 100.0, 'f', 2) + "% " +
+			QString::number(0.001L * (1.0L * rcur / startrecv.elapsed()), 'f', 2) + " MB/s " +
+			QString::number(rcur / 1000000.0, 'f', 2) + "/" + QString::number(rsize / 1000000.0, 'f', 2) + " MB");
 		file->write(data);
 		p2p_msg->getSocket()->write("4\n");
 		break;
@@ -289,13 +291,21 @@ void MainWindow::readMsg()
 			startsend.start();
 		if (!sf->atEnd())
 		{
-			
 			SM = STransforming;
 			const auto d = sf->read(1024 * 1024 * 2);
 			DEBUG << "R" << d.length();
 			cur += d.length();
-			ui->msg_status->setText("Sending " + QString::number(cur * 1.0 / size * 100,'f', 2)  +"% " +( startsend.elapsed() > 0 ?  QString::number(0.001 * (cur / startsend.elapsed()), 'f', 2) : "NaN Speed")+ " MB/s " + QString::number(cur / 1000000.0, 'f', 2) + "/" + QString::number(size / 1000000.0, 'f', 2) + " MB");
-			p2p_msg->getSocket()->write("2" + d.toBase64().replace('\n','\u0001') + "\n");
+			ui->msg_status->setText(
+				"Sending " + QString::number(cur * 1.0 / size * 100, 'f', 2) + "% " + (startsend.elapsed() > 0
+					                                                                       ? QString::number(
+						                                                                       0.001L * (1.0L * cur
+							                                                                       / startsend.
+							                                                                       elapsed()), 'f',
+						                                                                       2)
+					                                                                       : "NaN Speed") + " MB/s "
+				+ QString::number(cur / 1000000.0, 'f', 2) + "/" + QString::number(size / 1000000.0, 'f', 2) +
+				" MB");
+			p2p_msg->getSocket()->write("2" + d.toBase64().replace('\n', '\u0001') + "\n");
 		}
 		else
 		{

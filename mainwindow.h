@@ -7,7 +7,6 @@
 #include <QEvent>
 #include <QElapsedTimer>
 #include <QFile>
-#include <QEventLoop>
 #include "p2pnetwork.h"
 QT_BEGIN_NAMESPACE
 
@@ -26,20 +25,20 @@ public:
 	MainWindow(QWidget* parent = nullptr);
 	~MainWindow();
 public slots:
-	void playData();
-	void SwitchedNetwork(P2PNetwork::protocol);
+	void playData() const;
+	void SwitchedNetwork(P2PNetwork::protocol) const;
 private slots:
-	void on_pushButton_clicked();
+	void on_pushButton_clicked() const;
 
-	void on_InVol_valueChanged(int value);
+	void on_InVol_valueChanged(int value) const;
 
-	void on_comboBox_currentIndexChanged(const QString& arg1);
+	void on_comboBox_currentIndexChanged(const QString& arg1) const;
 
 	void on_hz_currentTextChanged(const QString& arg1);
 
-	void on_msg_send_clicked();
+	void on_msg_send_clicked() const;
 
-	void on_msg_conn_clicked();
+	void on_msg_conn_clicked() const;
 
 	void on_pushButton_2_clicked();
 
@@ -62,20 +61,27 @@ private:
 
 	enum RecvMode
 	{
-		NotStarted,Transforming,EndFile
-	}RM = NotStarted;
-	QFile *file = nullptr;
+		NotStarted,
+		Transforming,
+		EndFile
+	} RM = NotStarted;
+
+	QFile* file = nullptr;
 	QElapsedTimer startrecv;
+
 	enum SendMode
 	{
-		SNotStarted, SWaitRepsone,STransforming
-	}SM = SNotStarted;
+		SNotStarted,
+		SWaitRepsone,
+		STransforming
+	} SM = SNotStarted;
+
 	QFile* sf = nullptr;
-	QElapsedTimer startsend ;
+	QElapsedTimer startsend;
 	QByteArray readbuf;
-	unsigned long long cur = 0;
-	unsigned long long size = 0;
-	unsigned long long rcur = 0;
-	unsigned long long rsize = 0;
+	qint64 cur = 0;
+	qint64 size = 0;
+	qint64 rcur = 0;
+	qint64 rsize = 0;
 };
 #endif // MAINWINDOW_H
