@@ -1,7 +1,6 @@
 #ifndef P2PNETWORK_H
 #define P2PNETWORK_H
 #include <QObject>
-#include <QTimer>
 #include <QUdpSocket>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -36,7 +35,6 @@ private:
 	void stopTCP() const;
 	void restartTCP();
 	void restartUDP();
-	QTimer* waitTcpConnected = nullptr;
 	QUdpSocket* udp = nullptr;
 	QTcpSocket* tcpC = nullptr;
 	QTcpServer* tcpS = nullptr;

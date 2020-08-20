@@ -81,22 +81,8 @@ void P2PNetwork::connectToHost(const QString& host, int port)
 		stopTCP();
 		CurTCPSTATUS = TCP_status::CONNECTING;
 		tcpC = new QTcpSocket(this);
-		waitTcpConnected = new QTimer(this);
-		connect(waitTcpConnected, &QTimer::timeout, this, [&]
-		{
-			waitTcpConnected->stop();
-			waitTcpConnected->deleteLater();
-			waitTcpConnected = nullptr;
-			emit disconnected();
-			destoryTcpSocket();
-			restartTCP();
-			//CurTCPSTATUS = BLANK;   //The timeout may not work
-		});
 		connect(tcpC, &QTcpSocket::connected, this, [&]
 		{
-			waitTcpConnected->stop();
-			waitTcpConnected->deleteLater();
-			waitTcpConnected = nullptr;
 			CurTCPSTATUS = TCP_status::CONNECTED;
 			emit connected();
 		});
@@ -112,10 +98,14 @@ void P2PNetwork::connectToHost(const QString& host, int port)
 			restartTCP();
 		});
 		connect(tcpC, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, [&](QAbstractSocket::SocketError e)
-			{
+		{
 				emit error(e, tcpC->errorString());
-			});
-		waitTcpConnected->start(5000);
+				if (CurTCPSTATUS == TCP_status::CONNECTING) {
+					emit disconnected();
+					destoryTcpSocket();
+					restartTCP();
+				}
+		});
 	}
 	getSocket()->connectToHost(host, port);
 }
