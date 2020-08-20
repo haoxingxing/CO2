@@ -6,6 +6,7 @@
 #include <QAudioInput>
 #include <QEvent>
 #include <QElapsedTimer>
+#include <QCryptographicHash>
 #include <QFile>
 #include "p2pnetwork.h"
 QT_BEGIN_NAMESPACE
@@ -49,7 +50,7 @@ private:
 	Ui::MainWindow* ui;
 
 	QIODevice* device = nullptr;
-
+	QCryptographicHash ch_;
 	QAudioOutput* output = nullptr;
 	QAudioInput* input = nullptr;
 	QAudioFormat format;
@@ -73,7 +74,8 @@ private:
 	{
 		SNotStarted,
 		SWaitRepsone,
-		STransforming
+		STransforming,
+		SWaitMD5
 	} SM = SNotStarted;
 
 	QFile* sf = nullptr;

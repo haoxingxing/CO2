@@ -11,6 +11,7 @@
 MainWindow::MainWindow(QWidget* parent)
 	: QMainWindow(parent)
 	  , ui(new Ui::MainWindow),
+	  ch_(QCryptographicHash::Md5),
 	  p2p(new P2PNetwork(this, QHostAddress::AnyIPv4,1002)),
 	  p2p_msg(new P2PNetwork(this, QHostAddress::AnyIPv4,1003))
 {
@@ -52,6 +53,7 @@ MainWindow::MainWindow(QWidget* parent)
 	});
 	connect(p2p_msg, &P2PNetwork::disconnected, this, [&]
 	{
+		ui->ismd5->setDisabled(false);
 		ui->msg_send->setDisabled(true);
 		ui->pushButton_2->setDisabled(true);
 		ui->pushButton_2->setText("Send File");
@@ -230,15 +232,17 @@ void MainWindow::on_pushButton_2_clicked()
 		QMessageBox::critical(this, "File doesn't exist", "Unable to send file");
 		return;
 	}
+	ch_.reset();
 	ui->pushButton_2->setDisabled(true);
 	ui->pushButton_2->setText("Sending");
+	ui->ismd5->setDisabled(true);
 	sf->open(QIODevice::ReadOnly);
 	size = sf->size();
 	cur = 0;
 	ui->msg_2->append("File Transfer Started Default File Name: " + x);
 	DEBUG << "File Transfer Started Default File Name: " + x;
 	p2p_msg->getSocket()->write(
-		"1" + x.toUtf8().toBase64() + " " + QString::number(size).toUtf8() + "\n");
+		"1" + x.toUtf8().toBase64() + " " + QString::number(size).toUtf8() +" " + (ui->ismd5->isChecked()? "1" : "0") + "\n");
 	SM = SWaitRepsone;
 }
 
@@ -264,13 +268,17 @@ void MainWindow::readMsg()
 			file = new QFile(QFileDialog::getSaveFileName(this, "Find place to drop", QByteArray::fromBase64(n[0])),
 			                 this);
 			rsize = n[1].toULongLong();
+			ui->ismd5->setChecked(n[2] == "1");
 			rcur = 0;
 			RM = Transforming;
+			if (ui->ismd5->isChecked())
+				ch_.reset();
 			file->open(QIODevice::WriteOnly);
 			p2p_msg->getSocket()->write("4\n");
 			startrecv.start();
 			ui->pushButton_2->setText("Recving");
 			ui->pushButton_2->setDisabled(true);
+			ui->ismd5->setDisabled(true);
 			// Start File Trans With Filename 
 			break;
 		}
@@ -280,6 +288,8 @@ void MainWindow::readMsg()
 		data = QByteArray::fromBase64(data.mid(1));
 		DEBUG << p2p_msg->getSocket()->peerAddress().toString() << "W" << data.length();
 		rcur += data.length();
+		if (ui->ismd5->isChecked())
+			ch_.addData(data);
 		ui->msg_status->setText(
 			"Recving " + QString::number(100.0 * rcur / rsize , 'f', 2) + "% " +
 			QString::number(0.001 * rcur / startrecv.elapsed(), 'f', 2) + " MB/s " +
@@ -289,11 +299,23 @@ void MainWindow::readMsg()
 		break;
 	case '3':
 		assert(RM != Transforming);
+		data = data.mid(1);
 		file->flush();
 		file->close();
 		file->deleteLater();
+		ui->msg_2->append(
+			"Recvd " + QString::number(100.0 * rcur / rsize, 'f', 2) + "% " +
+			QString::number(0.001 * rcur / startrecv.elapsed(), 'f', 2) + " MB/s " +
+			QString::number(rcur / 1000000.0, 'f', 3) + "/" + QString::number(rsize / 1000000.0, 'f', 3) + " MB");
 		rsize = 0;
 		rcur = 0;
+		if (ui->ismd5->isChecked()) {
+			ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "] Remote MD5 " + data);
+			ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "] Local  MD5 " + ch_.result().toHex());
+			p2p_msg->getSocket()->write("5" + ch_.result().toHex() + "\n");
+		}
+		ui->ismd5->setDisabled(false);
+		ui->msg_status->setText("Recv Finished");
 		ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "] File Transfer Ended");
 		ui->pushButton_2->setText("Send File");
 		ui->pushButton_2->setDisabled(false);
@@ -308,6 +330,8 @@ void MainWindow::readMsg()
 			SM = STransforming;
 			const auto d = sf->read(1024 * 1024 * 2);
 			DEBUG << "R" << d.length();
+			if (ui->ismd5->isChecked())
+				ch_.addData(d);
 			cur += d.length();
 			ui->msg_status->setText(
 				"Sending " + QString::number(cur * 1.0 / size * 100, 'f', 2) + "% " + (startsend.elapsed() > 0
@@ -323,15 +347,46 @@ void MainWindow::readMsg()
 		}
 		else
 		{
-			SM = SNotStarted;
-			ui->msg_2->append("File Transfer Ended");
-			p2p_msg->getSocket()->write("3\n");
+			SM = SWaitMD5;
+			ui->msg_2->append(
+				"Sent " + QString::number(cur * 1.0 / size * 100, 'f', 2) + "% " + (startsend.elapsed() > 0
+					? QString::number(
+						0.001 * cur
+						/ startsend.
+						elapsed(), 'f',
+						2)
+					: "NaN Speed") + " MB/s "
+				+ QString::number(cur / 1000000.0, 'f', 3) + "/" + QString::number(size / 1000000.0, 'f', 3) +
+				" MB");
+			if (ui->ismd5->isChecked()) {
+				ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "] Local  MD5 " + ch_.result().toHex());
+				ui->msg_status->setText("Waiting for MD5 response");
+			}
+			else
+			{
+				ui->ismd5->setDisabled(false);
+				ui->msg_2->append("File Transfer Ended");
+				ui->msg_status->setText("Send Finished");
+				ui->pushButton_2->setText("Send File");
+				ui->pushButton_2->setDisabled(false);
+			}
+			p2p_msg->getSocket()->write("3" + (ui->ismd5->isChecked() ? ch_.result().toHex() : "" )+ "\n");
 			sf->deleteLater();
 			cur = 0;
 			size = 0;
-			ui->pushButton_2->setText("Send File");
-			ui->pushButton_2->setDisabled(false);
 		}
+		break;
+	case '5':
+		assert(SM != SWaitMD5);
+		SM = SNotStarted;
+		data = data.mid(1);
+		ui->msg_status->setText("Send Finished");
+		ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "] Remote MD5 " + data);
+		ui->msg_2->append("File Transfer Ended");
+		ui->ismd5->setDisabled(false);
+		ui->pushButton_2->setText("Send File");
+		ui->pushButton_2->setDisabled(false);
+		break;
 	default:
 		assert(false);
 	}
