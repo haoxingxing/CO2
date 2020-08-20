@@ -10,49 +10,51 @@ class P2PNetwork : public QObject
 {
 Q_OBJECT
 public:
-	enum protocol
+	enum class protocol
 	{
+		None,
 		UDP,
 		TCP,
-		None
-	} _protocol = None;
+	};
 
-	P2PNetwork(QObject* parent, int port);
+	P2PNetwork(QObject* parent, QHostAddress bind_address,int port);
 	void switchProtocol(protocol target);
 	QAbstractSocket* getSocket() const;
 	void connectToHost(const QString& host, int port);
 	void disconnectFromHost() const;
+	protocol GetProtocol()const { return _protocol; }
 signals:
 	void disconnected();
 	void connected();
 	void protocolSwitched(protocol);
+	void error(QAbstractSocket::SocketError,QString errstr);
 private:
 	void destoryTCP();
 	void destoryUDP();
 	void initTCP();
 	void initUDP();
-
+	void stopTCP() const;
 	void restartTCP();
 	void restartUDP();
 	QTimer* waitTcpConnected = nullptr;
 	QUdpSocket* udp = nullptr;
 	QTcpSocket* tcpC = nullptr;
 	QTcpServer* tcpS = nullptr;
-
-	enum
+	QHostAddress bindaddress;
+	protocol _protocol = protocol::None;
+	enum class TCP_status
 	{
-		TCONNECTED,
-		TCONNECTING,
-		TLISTENING,
-		TBLANK
-	} CurTCPSTATUS = TBLANK;
-
-	enum
+		BLANK,
+		LISTENING,
+		CONNECTING,
+		CONNECTED,
+	}CurTCPSTATUS = TCP_status::BLANK;
+	enum class UDP_status
 	{
-		UCONNECTED,
-		ULISTENING,
-		UBLANK
-	} CurUDPSTATUS = UBLANK;
+		BLANK,
+		LISTENING,
+		CONNECTED,
+	} CurUDPSTATUS = UDP_status::BLANK;
 
 	void destoryTcpServer();
 	void destoryTcpSocket();

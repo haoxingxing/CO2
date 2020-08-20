@@ -11,8 +11,8 @@
 MainWindow::MainWindow(QWidget* parent)
 	: QMainWindow(parent)
 	  , ui(new Ui::MainWindow),
-	  p2p(new P2PNetwork(this, 1002)),
-	  p2p_msg(new P2PNetwork(this, 1003))
+	  p2p(new P2PNetwork(this, QHostAddress::AnyIPv4,1002)),
+	  p2p_msg(new P2PNetwork(this, QHostAddress::AnyIPv4,1003))
 {
 	ui->setupUi(this);
 	format.setChannelCount(1);
@@ -47,7 +47,7 @@ MainWindow::MainWindow(QWidget* parent)
 		isconnected = true;
 		if (!ismsgconnected)
 			ui->msg_connect->setText(p2p->getSocket()->peerAddress().toString());
-		if (p2p->_protocol == P2PNetwork::TCP)
+		if (p2p->GetProtocol() == P2PNetwork::protocol::TCP)
 			ui->lineEdit->setText(p2p->getSocket()->peerAddress().toString());
 	});
 	connect(p2p_msg, &P2PNetwork::disconnected, this, [&]
@@ -87,7 +87,7 @@ MainWindow::MainWindow(QWidget* parent)
 		ui->msg_send->setDefault(true);
 		if (!isconnected)
 			ui->lineEdit->setText(p2p_msg->getSocket()->peerAddress().toString());
-		if (p2p_msg->_protocol == P2PNetwork::TCP)
+		if (p2p_msg->GetProtocol() == P2PNetwork::protocol::TCP)
 			ui->msg_connect->setText(p2p_msg->getSocket()->peerAddress().toString());
 	});
 	connect(ui->msg, &QLineEdit::returnPressed, this, [&]
@@ -95,9 +95,28 @@ MainWindow::MainWindow(QWidget* parent)
 		if (ismsgconnected)
 			on_msg_send_clicked();
 	});
-	connect(p2p, &P2PNetwork::protocolSwitched, this, &MainWindow::SwitchedNetwork);
+	connect(ui->lineEdit, &QLineEdit::returnPressed, this, [&]
+		{
+			if (!isconnected)
+				on_pushButton_clicked();
+		});
+	connect(ui->msg_connect, &QLineEdit::returnPressed, this, [&]
+		{
+			if (!ismsgconnected)
+				on_msg_conn_clicked();
+		});
+	connect(p2p, &P2PNetwork::error, this, [&](QAbstractSocket::SocketError,QString str)
+	{
+			ui->msg_2->append("Voice Connection Error: " + str);
+			ui->status->setText(str);
+	});
+	connect(p2p_msg, &P2PNetwork::error, this, [&](QAbstractSocket::SocketError, QString str)
+		{
+			ui->msg_2->append("Message Connection Error: " + str);
+			ui->msg_status->setText(str);
+		});
 	//ui->textBrowser->setDisabled(true);
-	p2p_msg->switchProtocol(P2PNetwork::TCP);
+	p2p_msg->switchProtocol(P2PNetwork::protocol::TCP);
 	ui->pushButton_2->setDisabled(true);
 }
 
@@ -108,7 +127,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::SwitchedNetwork(P2PNetwork::protocol pro) const
 {
-	DEBUG << pro;
+	DEBUG << static_cast<int>(pro);
 	ui->status->setText("Ready");
 }
 
@@ -145,13 +164,9 @@ void MainWindow::on_InVol_valueChanged(int value) const
 void MainWindow::on_comboBox_currentIndexChanged(const QString& arg1) const
 {
 	if (arg1 == "UDP")
-	{
-		p2p->switchProtocol(P2PNetwork::UDP);
-	}
+		p2p->switchProtocol(P2PNetwork::protocol::UDP);
 	else if (arg1 == "TCP")
-	{
-		p2p->switchProtocol(P2PNetwork::TCP);
-	}
+		p2p->switchProtocol(P2PNetwork::protocol::TCP);
 	else
 		assert(false);
 }
@@ -231,7 +246,8 @@ void MainWindow::on_pushButton_2_clicked()
 void MainWindow::readMsg()
 {
 	readbuf.append(p2p_msg->getSocket()->readLine());
-	if (readbuf.back() != '\n')
+
+	if ((readbuf.size() < 1)||(readbuf.back() != '\n'))
 		return;
 	QByteArray data = readbuf.chopped(1);
 	readbuf.clear();

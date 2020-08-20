@@ -1,25 +1,26 @@
 #include "p2pnetwork.h"
 #include "tools.h"
-const char* name_protocol[] = {"UDP", "TCP", "None"};
-const char* name_curtcpst[] = {"TCONNECTED", "TCONNECTING", "TLISTENING", "TBLANK"};
-const char* name_curudpst[] = {"UCONNECTED", "ULISTENING", "UBLANK"};
-
-P2PNetwork::P2PNetwork(QObject* parent, int port) : QObject(parent), port(port)
+const char* name_protocol[] = {"None","UDP", "TCP", };
+const char* name_curtcpst[] = {"BLANK","LISTENING","CONNECTING","CONNECTED", };
+const char* name_curudpst[] = {"BLANK","LISTENING" , "CONNECTED",};
+#define P2PNETWORK_STATUS "Status:" << tcpS << tcpC << name_curtcpst[static_cast<int>(CurTCPSTATUS)] << udp << name_curudpst[static_cast<int>(CurUDPSTATUS)] << name_protocol[static_cast<int>(_protocol)]  // NOLINT(cppcoreguidelines-macro-usage)
+P2PNetwork::P2PNetwork(QObject* parent, QHostAddress bind_address,int port) : QObject(parent),bindaddress(bind_address), port(port)
 {
 	connect(this, &P2PNetwork::protocolSwitched, this, [&](protocol p)
 	{
-		DEBUG << "Protocol Switched" << name_protocol[p] << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp <<
-			name_curudpst[CurUDPSTATUS] << name_protocol[_protocol];
+		DEBUG << "Protocol Switched" << name_protocol[static_cast<int>(p)] << P2PNETWORK_STATUS;
 	});
 	connect(this, &P2PNetwork::connected, this, [&]
 	{
-		DEBUG << "connected" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[CurUDPSTATUS] <<
-			name_protocol[_protocol];
+		DEBUG << "connected" << P2PNETWORK_STATUS;
 	});
 	connect(this, &P2PNetwork::disconnected, this, [&]
 	{
-		DEBUG << "disconnected" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[CurUDPSTATUS] <<
-			name_protocol[_protocol];
+		DEBUG << "disconnected" << P2PNETWORK_STATUS;
+	});
+	connect(this, &P2PNetwork::error, this, [&](QAbstractSocket::SocketError e, const QString& str)
+	{
+			DEBUG << e << str << P2PNETWORK_STATUS;
 	});
 }
 
@@ -27,39 +28,38 @@ void P2PNetwork::switchProtocol(protocol target)
 {
 	switch (_protocol)
 	{
-	case UDP:
+	case protocol::UDP:
 		destoryUDP();
 		break;
-	case TCP:
+	case protocol::TCP:
 		destoryTCP();
 		break;
-	case None:
+	case protocol::None:
 		break;
 	}
 	_protocol = target;
 	switch (_protocol)
 	{
-	case UDP:
+	case protocol::UDP:
 		initUDP();
-		emit protocolSwitched(UDP);
 		break;
-	case TCP:
+	case protocol::TCP:
 		initTCP();
-		emit protocolSwitched(TCP);
 		break;
-	case None:
-		emit protocolSwitched(None);
+	case protocol::None:
 		break;
 	}
+	emit protocolSwitched(_protocol);
+
 }
 
 QAbstractSocket* P2PNetwork::getSocket() const
 {
 	switch (_protocol)
 	{
-	case UDP:
+	case protocol::UDP:
 		return udp;
-	case TCP:
+	case protocol::TCP:
 		return tcpC;
 	default:
 		return nullptr;
@@ -68,21 +68,18 @@ QAbstractSocket* P2PNetwork::getSocket() const
 
 void P2PNetwork::connectToHost(const QString& host, int port)
 {
-	DEBUG << "connect to" << host << port << "via" << name_protocol[_protocol];
-	if (_protocol == None)
+	DEBUG << "connect to" << host << port << "via" << name_protocol[static_cast<int>(_protocol)];
+	if (_protocol == protocol::None)
 	{
-		DEBUG << "no protocol selected" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[
-			CurUDPSTATUS] << name_protocol[_protocol];
+		DEBUG << "no protocol selected" << P2PNETWORK_STATUS;
 		emit disconnected();
 		return;
 	}
 
-	if (_protocol == TCP && CurTCPSTATUS == TLISTENING)
+	if (_protocol == protocol::TCP && CurTCPSTATUS == TCP_status::LISTENING)
 	{
-		tcpS->close();
-		DEBUG << "Stopped TCP Server" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[
-			CurUDPSTATUS] << name_protocol[_protocol];
-		CurTCPSTATUS = TCONNECTING;
+		stopTCP();
+		CurTCPSTATUS = TCP_status::CONNECTING;
 		tcpC = new QTcpSocket(this);
 		waitTcpConnected = new QTimer(this);
 		connect(waitTcpConnected, &QTimer::timeout, this, [&]
@@ -90,29 +87,34 @@ void P2PNetwork::connectToHost(const QString& host, int port)
 			waitTcpConnected->stop();
 			waitTcpConnected->deleteLater();
 			waitTcpConnected = nullptr;
-			tcpC->abort();
-			//emit disconnected();
-			//switchProtocol(None);
-			//CurTCPSTATUS = TBLANK;   //The timeout may not work
+			emit disconnected();
+			destoryTcpSocket();
+			restartTCP();
+			//CurTCPSTATUS = BLANK;   //The timeout may not work
 		});
 		connect(tcpC, &QTcpSocket::connected, this, [&]
 		{
 			waitTcpConnected->stop();
 			waitTcpConnected->deleteLater();
 			waitTcpConnected = nullptr;
-			CurTCPSTATUS = TCONNECTED;
+			CurTCPSTATUS = TCP_status::CONNECTED;
 			emit connected();
 		});
+
 		connect(tcpC, &QTcpSocket::disconnected, this, [&]
 		{
-			if (CurTCPSTATUS == TCONNECTED)
+			if (CurTCPSTATUS == TCP_status::CONNECTED)
 			{
 				emit disconnected(); //CleanUp Or Crash
-				CurTCPSTATUS = TBLANK;
+				CurTCPSTATUS = TCP_status::BLANK;
 			}
 			destoryTcpSocket();
 			restartTCP();
 		});
+		connect(tcpC, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, [&](QAbstractSocket::SocketError e)
+			{
+				emit error(e, tcpC->errorString());
+			});
 		waitTcpConnected->start(5000);
 	}
 	getSocket()->connectToHost(host, port);
@@ -122,34 +124,31 @@ void P2PNetwork::disconnectFromHost() const
 {
 	switch (_protocol)
 	{
-	case UDP:
-		if (CurUDPSTATUS == UCONNECTED)
+	case protocol::UDP:
+		if (CurUDPSTATUS == UDP_status::CONNECTED)
 		{
 			udp->disconnectFromHost();
 		}
 		else
 		{
-			DEBUG << "not connected" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[CurUDPSTATUS
-			] << name_protocol[_protocol];
+			DEBUG << "not connected" << P2PNETWORK_STATUS;
 		}
 		break;
-	case TCP:
+	case protocol::TCP:
 		switch (CurTCPSTATUS)
 		{
-		case TLISTENING:
-			DEBUG << "not connected" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[CurUDPSTATUS
-			] << name_protocol[_protocol];
+		case TCP_status::LISTENING:
+			DEBUG << "not connected" << P2PNETWORK_STATUS;
 			break;
-		case TCONNECTING:
-		case TCONNECTED:
+		case TCP_status::CONNECTING:
+		case TCP_status::CONNECTED:
 			tcpC->disconnectFromHost();
 			break;
 		default:
 			assert(false);
 		}
-	case None:
-		DEBUG << "not connected" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[CurUDPSTATUS] <<
-			name_protocol[_protocol];
+	case protocol::None:
+		DEBUG << "not connected" << P2PNETWORK_STATUS;
 		break;
 	}
 }
@@ -158,17 +157,17 @@ void P2PNetwork::destoryTCP()
 {
 	switch (CurTCPSTATUS)
 	{
-	case TLISTENING:
+	case TCP_status::LISTENING:
 		destoryTcpServer();
-		CurTCPSTATUS = TBLANK;
+		CurTCPSTATUS = TCP_status::BLANK;
 		break;
-	case TCONNECTED:
-	case TCONNECTING:
+	case TCP_status::CONNECTED:
+	case TCP_status::CONNECTING:
 		destoryTcpSocket();
 		destoryTcpServer();
-		CurTCPSTATUS = TBLANK;
+		CurTCPSTATUS = TCP_status::BLANK;
 		break;
-	case TBLANK:
+	case TCP_status::BLANK:
 		break;
 	}
 }
@@ -176,102 +175,112 @@ void P2PNetwork::destoryTCP()
 void P2PNetwork::initUDP()
 {
 	udp = new QUdpSocket(this);
-	udp->bind(QHostAddress::Any, port);
-	CurUDPSTATUS = ULISTENING;
+	udp->bind(bindaddress, port);
+	CurUDPSTATUS = UDP_status::LISTENING;
 	connect(udp, &QUdpSocket::connected, this, [&]
 	{
-		CurUDPSTATUS = UCONNECTED;
+		CurUDPSTATUS = UDP_status::CONNECTED;
 		emit connected();
 	});
+	connect(udp, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, [&](QAbstractSocket::SocketError e)
+		{
+			emit error(e, udp->errorString());
+		});
 	connect(udp, &QUdpSocket::disconnected, this, [&]
 	{
 		emit disconnected(); //CleanUp Or Crash
 		restartUDP();
 	});
-	DEBUG << "Initialize UDP" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[CurUDPSTATUS] <<
-		name_protocol[_protocol];
+	DEBUG << "Initialize UDP" << P2PNETWORK_STATUS;
+}
+
+void P2PNetwork::stopTCP() const
+{
+	tcpS->close();
+	DEBUG << "Stopped TCP Server" << P2PNETWORK_STATUS;
 }
 
 void P2PNetwork::restartTCP()
 {
-	CurTCPSTATUS = TLISTENING;
-	tcpS->listen(QHostAddress::Any, port);
-	DEBUG << "Restarted TCP Server" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[CurUDPSTATUS]
-		<< name_protocol[_protocol];
+	CurTCPSTATUS = TCP_status::LISTENING;
+	tcpS->listen(bindaddress, port);
+	DEBUG << "Restarted TCP Server" << P2PNETWORK_STATUS;
 }
 
 void P2PNetwork::restartUDP()
 {
-	CurUDPSTATUS = ULISTENING;
-	udp->bind(QHostAddress::Any, port);
-	DEBUG << "Restarted UDP Server" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[CurUDPSTATUS]
-		<< name_protocol[_protocol];
+	CurUDPSTATUS = UDP_status::LISTENING;
+	udp->bind(bindaddress, port);
+	DEBUG << "Restarted UDP Server" << P2PNETWORK_STATUS;
 }
 
 void P2PNetwork::destoryUDP()
 {
-	if (CurUDPSTATUS == UCONNECTED)
+	if (CurUDPSTATUS == UDP_status::CONNECTED)
 	{
 		emit disconnected();
 	}
-	DEBUG << "Disconnect SIGNAL/SLOT" << udp->disconnect();
+	DEBUG << "Disconnect SIGNAL/SLOT" << udp->disconnect() << P2PNETWORK_STATUS;
 	udp->deleteLater();
 	udp = nullptr;
-	CurUDPSTATUS = UBLANK;
-	DEBUG << "UDP Destoryed" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[CurUDPSTATUS] <<
-		name_protocol[_protocol];
+	CurUDPSTATUS = UDP_status::BLANK;
+	DEBUG << "UDP Destoryed" << P2PNETWORK_STATUS;
 }
 
 void P2PNetwork::initTCP()
 {
 	tcpS = new QTcpServer(this);
 	tcpS->setMaxPendingConnections(1);
+	connect(tcpS, &QTcpServer::acceptError, this, [&](QAbstractSocket::SocketError e)
+		{
+			emit error(e, tcpS->errorString());
+		});
+
 	connect(tcpS, &QTcpServer::newConnection, this, [&]
 	{
 		tcpC = tcpS->nextPendingConnection();
-		tcpS->close();
-		DEBUG << "Stopped TCP Server" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[
-			CurUDPSTATUS] << name_protocol[_protocol];
+		stopTCP();
 		tcpC->setParent(this);
-		CurTCPSTATUS = TCONNECTED;
+		CurTCPSTATUS = TCP_status::CONNECTED;
+		connect(tcpC, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, [&](QAbstractSocket::SocketError e)
+			{
+				emit error(e, tcpC->errorString());
+			});
 		connect(tcpC, &QTcpSocket::disconnected, this, [&]
 		{
-			if (CurTCPSTATUS == TCONNECTED)
+			if (CurTCPSTATUS == TCP_status::CONNECTED)
 			{
 				emit disconnected(); //CleanUp Or Crash
-				CurTCPSTATUS = TBLANK;
+				CurTCPSTATUS = TCP_status::BLANK;
 			}
 			destoryTcpSocket();
 			restartTCP();
 		});
 		emit connected();
 	});
-	CurTCPSTATUS = TLISTENING;
-	tcpS->listen(QHostAddress::Any, port);
-	DEBUG << "Initialize TCP" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[CurUDPSTATUS] <<
-		name_protocol[_protocol];
+	CurTCPSTATUS = TCP_status::LISTENING;
+	tcpS->listen(bindaddress, port);
+	DEBUG << "Initialize TCP" << P2PNETWORK_STATUS;
 }
 
 void P2PNetwork::destoryTcpServer()
 {
-	DEBUG << "Disconnect SIGNAL/SLOT" << tcpS->disconnect();
+	DEBUG << "Disconnect SIGNAL/SLOT" << tcpS->disconnect() << P2PNETWORK_STATUS;
 	tcpS->deleteLater();
 	tcpS = nullptr;
-	DEBUG << "TCP Server Destoryed" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[CurUDPSTATUS]
-		<< name_protocol[_protocol];
+	DEBUG << "TCP Server Destoryed" << P2PNETWORK_STATUS;
 }
 
 void P2PNetwork::destoryTcpSocket()
 {
-	if (CurTCPSTATUS == TCONNECTED)
+	if (CurTCPSTATUS == TCP_status::CONNECTED)
 	{
 		emit disconnected();
 		tcpC->disconnectFromHost();
 	}
-	DEBUG << "Disconnect SIGNAL/SLOT" << tcpC->disconnect();
+	DEBUG << "Disconnect SIGNAL/SLOT" << tcpC->disconnect() << P2PNETWORK_STATUS;
 	tcpC->deleteLater();
 	tcpC = nullptr;
-	CurTCPSTATUS = TBLANK;
-	DEBUG << "TCP Socket Destoryed" << tcpS << tcpC << name_curtcpst[CurTCPSTATUS] << udp << name_curudpst[CurUDPSTATUS]
-		<< name_protocol[_protocol];
+	CurTCPSTATUS = TCP_status::BLANK;
+	DEBUG << "TCP Socket Destoryed" << P2PNETWORK_STATUS;
 }
