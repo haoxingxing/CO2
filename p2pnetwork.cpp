@@ -3,7 +3,9 @@
 const char* name_protocol[] = {"None","UDP", "TCP", };
 const char* name_curtcpst[] = {"BLANK","LISTENING","CONNECTING","CONNECTED", };
 const char* name_curudpst[] = {"BLANK","LISTENING" , "CONNECTED",};
-#define P2PNETWORK_STATUS "Status:" << tcpS << tcpC << name_curtcpst[static_cast<int>(CurTCPSTATUS)] << udp << name_curudpst[static_cast<int>(CurUDPSTATUS)] << name_protocol[static_cast<int>(_protocol)]  // NOLINT(cppcoreguidelines-macro-usage)
+//#define P2PNETWORK_STATUS "status:" << tcpS << tcpC << name_curtcpst[static_cast<int>(CurTCPSTATUS)] << udp << name_curudpst[static_cast<int>(CurUDPSTATUS)] << name_protocol[static_cast<int>(_protocol)]  // NOLINT(cppcoreguidelines-macro-usage)
+#define P2PNETWORK_STATUS ""
+
 P2PNetwork::P2PNetwork(QObject* parent, QHostAddress bind_address,int port) : QObject(parent),bindaddress(bind_address), port(port)
 {
 	connect(this, &P2PNetwork::protocolSwitched, this, [&](protocol p)

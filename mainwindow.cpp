@@ -105,17 +105,16 @@ MainWindow::MainWindow(QWidget* parent)
 			if (!ismsgconnected)
 				on_msg_conn_clicked();
 		});
-	connect(p2p, &P2PNetwork::error, this, [&](QAbstractSocket::SocketError,QString str)
+	connect(p2p, &P2PNetwork::error, this, [&](QAbstractSocket::SocketError, const QString& str)
 	{
 			ui->msg_2->append("Voice Connection Error: " + str);
 			ui->status->setText(str);
 	});
-	connect(p2p_msg, &P2PNetwork::error, this, [&](QAbstractSocket::SocketError, QString str)
+	connect(p2p_msg, &P2PNetwork::error, this, [&](QAbstractSocket::SocketError,const QString& str)
 		{
 			ui->msg_2->append("Message Connection Error: " + str);
 			ui->msg_status->setText(str);
 		});
-	//ui->textBrowser->setDisabled(true);
 	p2p_msg->switchProtocol(P2PNetwork::protocol::TCP);
 	ui->pushButton_2->setDisabled(true);
 }
@@ -284,7 +283,7 @@ void MainWindow::readMsg()
 		ui->msg_status->setText(
 			"Recving " + QString::number(100.0 * rcur / rsize , 'f', 2) + "% " +
 			QString::number(0.001 * rcur / startrecv.elapsed(), 'f', 2) + " MB/s " +
-			QString::number(rcur / 1000000.0, 'f', 2) + "/" + QString::number(rsize / 1000000.0, 'f', 2) + " MB");
+			QString::number(rcur / 1000000.0, 'f', 3) + "/" + QString::number(rsize / 1000000.0, 'f', 3) + " MB");
 		file->write(data);
 		p2p_msg->getSocket()->write("4\n");
 		break;
@@ -318,7 +317,7 @@ void MainWindow::readMsg()
 							                                                                       elapsed(), 'f',
 						                                                                       2)
 					                                                                       : "NaN Speed") + " MB/s "
-				+ QString::number(cur / 1000000.0, 'f', 2) + "/" + QString::number(size / 1000000.0, 'f', 2) +
+				+ QString::number(cur / 1000000.0, 'f', 3) + "/" + QString::number(size / 1000000.0, 'f', 3) +
 				" MB");
 			p2p_msg->getSocket()->write("2" + d.toBase64() + "\n");
 		}
