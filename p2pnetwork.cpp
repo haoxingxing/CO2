@@ -177,6 +177,7 @@ void P2PNetwork::initUDP()
 	connect(udp, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, [&](QAbstractSocket::SocketError e)
 		{
 			emit error(e, udp->errorString());
+			emit disconnected();
 		});
 	connect(udp, &QUdpSocket::disconnected, this, [&]
 	{

@@ -8,6 +8,8 @@
 #include <QElapsedTimer>
 #include <QCryptographicHash>
 #include <QFile>
+#include "webrtc/api/echo_canceller3_config.h"
+
 #include "p2pnetwork.h"
 QT_BEGIN_NAMESPACE
 
@@ -44,12 +46,15 @@ private slots:
 	void on_pushButton_2_clicked();
 
 	void readMsg();
+
+	void send_voice();
 private:
 	void switchAudioSample(int target);
 	void switchNetwork(P2PNetwork::protocol);
 	Ui::MainWindow* ui;
 
-	QIODevice* device = nullptr;
+	QIODevice* device_output = nullptr;
+	QIODevice* device_input = nullptr;
 	QCryptographicHash ch_;
 	QAudioOutput* output = nullptr;
 	QAudioInput* input = nullptr;
@@ -85,5 +90,7 @@ private:
 	qint64 size = 0;
 	qint64 rcur = 0;
 	qint64 rsize = 0;
+	webrtc::EchoCanceller3Config aec_config;
+
 };
 #endif // MAINWINDOW_H

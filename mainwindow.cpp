@@ -6,8 +6,13 @@
 #include <QDebug>
 #include <QKeyEvent>
 #include <QFileDialog>
-#include "tools.h"
 
+#include "high_pass_filter.h"
+#include "webrtc/api/echo_canceller3_factory.h"
+#include "webrtc/api/echo_canceller3_config.h"
+#include "webrtc/audio_processing/audio_buffer.h"
+using namespace webrtc;
+#include "tools.h"
 MainWindow::MainWindow(QWidget* parent)
 	: QMainWindow(parent)
 	  , ui(new Ui::MainWindow),
@@ -16,6 +21,8 @@ MainWindow::MainWindow(QWidget* parent)
 	  p2p_msg(new P2PNetwork(this, QHostAddress::AnyIPv4,1003))
 {
 	ui->setupUi(this);
+
+	
 	format.setChannelCount(1);
 	format.setSampleSize(16);
 	format.setCodec("audio/pcm");
@@ -24,16 +31,26 @@ MainWindow::MainWindow(QWidget* parent)
 	ui->comboBox->addItem("UDP");
 	ui->comboBox->addItem("TCP");
 	ui->label_2->setDisabled(true);
-	switchAudioSample(44100);
+	switchAudioSample(48000);
+	int ref_format, ref_channels, ref_sample_rate, ref_bits_per_sample;
+	int rec_format, rec_channels, rec_sample_rate, rec_bits_per_sample;
+	unsigned int ref_data_length, rec_data_length;
+	EchoCanceller3Config aec_config;
+	aec_config.filter.export_linear_aec_output = true;
+	EchoCanceller3Factory aec_factory = EchoCanceller3Factory(aec_config);
+	std::unique_ptr<EchoControl> echo_controler = aec_factory.Create(ref_sample_rate, ref_channels, rec_channels);
+	std::unique_ptr<HighPassFilter> hp_filter = std::make_unique<HighPassFilter>(rec_sample_rate, rec_channels);
+
 	connect(p2p, &P2PNetwork::disconnected, this, [&]
 	{
-		switchAudioSample(ui->hz->currentText().toInt());
 		ui->comboBox->setDisabled(false);
 		ui->lineEdit->setDisabled(false);
 		ui->hz->setDisabled(false);
 		ui->pushButton->setText("Connect");
 		isconnected = false;
 		ui->status->setText("Disconnected");
+		input->suspend();
+		DEBUG << device_input->disconnect();
 	});
 
 	connect(p2p, &P2PNetwork::connected, this, [&]
@@ -42,10 +59,11 @@ MainWindow::MainWindow(QWidget* parent)
 		ui->lineEdit->setDisabled(true);
 		ui->hz->setDisabled(true);
 		connect(p2p->getSocket(), &QAbstractSocket::readyRead, this, &MainWindow::playData);
-		input->start(p2p->getSocket());
 		ui->pushButton->setText("Disconnect");
 		ui->status->setText("Connected");
 		isconnected = true;
+		device_input = input->start();
+		connect(device_input, &QIODevice::readyRead, this, &MainWindow::send_voice);
 		if (!ismsgconnected)
 			ui->msg_connect->setText(p2p->getSocket()->peerAddress().toString());
 		if (p2p->GetProtocol() == P2PNetwork::protocol::TCP)
@@ -119,6 +137,7 @@ MainWindow::MainWindow(QWidget* parent)
 		});
 	p2p_msg->switchProtocol(P2PNetwork::protocol::TCP);
 	ui->pushButton_2->setDisabled(true);
+
 }
 
 MainWindow::~MainWindow()
@@ -137,7 +156,7 @@ void MainWindow::playData() const
 	ui->status->setText("Playing");
 	QByteArray data;
 	data = p2p->getSocket()->readAll();
-	device->write(data.data(), data.size());
+	device_output->write(data.data(), data.size());
 }
 
 void MainWindow::on_pushButton_clicked() const
@@ -186,13 +205,20 @@ void MainWindow::switchAudioSample(int target)
 	ui->label_2->setText(QString::number(format.sampleRate() / 1000.0) + "kHz " +
 		QString::number(format.channelCount()) + " Channel " +
 		format.codec() + " codec");
+	DEBUG << input->disconnect();
+	DEBUG << output->disconnect();
+	DEBUG << device_output->disconnect();
+	DEBUG << device_input->disconnect();
+
 	delete input;
 	delete output;
-	delete device;
+	delete device_output;
+	delete device_input;
 	input = new QAudioInput(format);
 	output = new QAudioOutput(format);
 	input->setVolume(ui->InVol->value() / 99.0);
-	device = output->start();
+	device_output = output->start();
+	input->suspend();
 	ui->status->setText("Ready");
 }
 
@@ -390,4 +416,10 @@ void MainWindow::readMsg()
 	default:
 		assert(false);
 	}
+}
+
+void MainWindow::send_voice()
+{
+	p2p->getSocket()->write(device_input->readAll());
+	p2p->getSocket()->flush();
 }

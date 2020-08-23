@@ -1,0 +1,6 @@
+aux_source_directory(. src)
+aux_source_directory("memory" src_memory)
+aux_source_directory("numerics" src_numerics)
+aux_source_directory("strings" src_strings)
+aux_source_directory("system" src_system)
+add_library(rtc_base ${src} ${src_numerics} ${src_memory} ${src_strings} ${src_system})

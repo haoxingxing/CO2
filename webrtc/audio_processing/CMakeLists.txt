@@ -1,0 +1,6 @@
+aux_source_directory(. src)
+aux_source_directory("aec3" src_aec3)
+aux_source_directory("logging" src_logging)
+aux_source_directory("resampler" src_resampler)
+aux_source_directory("resampler" src_utility)
+add_library(audio_processing ${src} ${src_aec3} ${src_logging} ${src_resampler} ${src_utility})
