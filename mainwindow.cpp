@@ -7,10 +7,6 @@
 #include <QKeyEvent>
 #include <QFileDialog>
 
-#include "high_pass_filter.h"
-#include "webrtc/api/echo_canceller3_factory.h"
-#include "webrtc/api/echo_canceller3_config.h"
-#include "webrtc/audio_processing/audio_buffer.h"
 using namespace webrtc;
 #include "tools.h"
 MainWindow::MainWindow(QWidget* parent)
@@ -22,24 +18,21 @@ MainWindow::MainWindow(QWidget* parent)
 {
 	ui->setupUi(this);
 
+	int loc_samplingRate = 16000;
+	int loc_frameSize = SAMPLE_SIZE;
+	m_echo_state = speex_echo_state_init(loc_frameSize, 10 * loc_frameSize);
+	DEBUG << speex_echo_ctl(m_echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &loc_samplingRate);
+	m_preprocess_state = speex_preprocess_state_init(loc_frameSize, loc_samplingRate);
 	
 	format.setChannelCount(1);
 	format.setSampleSize(16);
-	format.setCodec("audio/pcm");
+	format.setCodec("audio/wav");
 	format.setByteOrder(QAudioFormat::LittleEndian);
 	format.setSampleType(QAudioFormat::UnSignedInt);
 	ui->comboBox->addItem("UDP");
 	ui->comboBox->addItem("TCP");
 	ui->label_2->setDisabled(true);
-	switchAudioSample(48000);
-	int ref_format, ref_channels, ref_sample_rate, ref_bits_per_sample;
-	int rec_format, rec_channels, rec_sample_rate, rec_bits_per_sample;
-	unsigned int ref_data_length, rec_data_length;
-	EchoCanceller3Config aec_config;
-	aec_config.filter.export_linear_aec_output = true;
-	EchoCanceller3Factory aec_factory = EchoCanceller3Factory(aec_config);
-	std::unique_ptr<EchoControl> echo_controler = aec_factory.Create(ref_sample_rate, ref_channels, rec_channels);
-	std::unique_ptr<HighPassFilter> hp_filter = std::make_unique<HighPassFilter>(rec_sample_rate, rec_channels);
+	switchAudioSample(16000);
 
 	connect(p2p, &P2PNetwork::disconnected, this, [&]
 	{
@@ -142,6 +135,10 @@ MainWindow::MainWindow(QWidget* parent)
 
 MainWindow::~MainWindow()
 {
+	speex_echo_state_destroy(m_echo_state);
+	speex_preprocess_state_destroy(m_preprocess_state);
+	m_echo_state = NULL;
+	m_preprocess_state = NULL;
 	delete ui;
 }
 
@@ -151,13 +148,6 @@ void MainWindow::SwitchedNetwork(P2PNetwork::protocol pro) const
 	ui->status->setText("Ready");
 }
 
-void MainWindow::playData() const
-{
-	ui->status->setText("Playing");
-	QByteArray data;
-	data = p2p->getSocket()->readAll();
-	device_output->write(data.data(), data.size());
-}
 
 void MainWindow::on_pushButton_clicked() const
 {
@@ -418,8 +408,23 @@ void MainWindow::readMsg()
 	}
 }
 
+
 void MainWindow::send_voice()
 {
-	p2p->getSocket()->write(device_input->readAll());
+	last_mic_capd = device_input->readAll();
+	// get most recent sample, remove echo and repush it on the list to be played    later
+	speex_echo_capture(m_echo_state, reinterpret_cast<spx_int16_t*>(last_mic_capd.data()), m_AECBufferOut);
+	speex_preprocess_run(m_preprocess_state, m_AECBufferOut);
+	p2p->getSocket()->write(QByteArray((const char*)m_AECBufferOut, sizeof(m_AECBufferOut)));
 	p2p->getSocket()->flush();
+	
+}
+
+void MainWindow::playData()
+{
+	ui->status->setText("Recvd");
+	auto x = p2p->getSocket()->readAll();
+	speex_echo_playback(m_echo_state, (spx_int16_t*)x.constData());
+	device_output->write(x.data(), x.size());
+
 }

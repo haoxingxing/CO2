@@ -8,8 +8,11 @@
 #include <QElapsedTimer>
 #include <QCryptographicHash>
 #include <QFile>
-#include "webrtc/api/echo_canceller3_config.h"
 
+#include "echo_control.h"
+
+#include "speex/speex_echo.h"
+#include "speex/speex_preprocess.h"
 #include "p2pnetwork.h"
 QT_BEGIN_NAMESPACE
 
@@ -20,6 +23,8 @@ namespace Ui
 
 QT_END_NAMESPACE
 
+#define SAMPLE_SIZE 160
+
 class MainWindow : public QMainWindow
 {
 Q_OBJECT
@@ -28,7 +33,7 @@ public:
 	MainWindow(QWidget* parent = nullptr);
 	~MainWindow();
 public slots:
-	void playData() const;
+	void playData();
 	void SwitchedNetwork(P2PNetwork::protocol) const;
 private slots:
 	void on_pushButton_clicked() const;
@@ -90,7 +95,10 @@ private:
 	qint64 size = 0;
 	qint64 rcur = 0;
 	qint64 rsize = 0;
-	webrtc::EchoCanceller3Config aec_config;
+	QByteArray last_mic_capd;
+	spx_int16_t m_AECBufferOut[SAMPLE_SIZE]{};
+	SpeexEchoState* m_echo_state;
+	SpeexPreprocessState* m_preprocess_state;
 
 };
 #endif // MAINWINDOW_H

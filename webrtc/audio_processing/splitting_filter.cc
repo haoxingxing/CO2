@@ -16,9 +16,6 @@
 //#include "signal_processing/include/signal_processing_library.h"
 #include "rtc_base/checks.h"
 
-#if defined(__cplusplus)
-extern "C"{
-#endif
 
 extern void WebRtcSpl_AnalysisQMF(const int16_t* in_data,
 	size_t in_data_length,
@@ -33,9 +30,6 @@ extern void WebRtcSpl_SynthesisQMF(const int16_t* low_band,
 	int32_t* filter_state1,
 	int32_t* filter_state2);
 
-#if defined(__cplusplus)
-}
-#endif
 
 namespace webrtc {
 namespace {

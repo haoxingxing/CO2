@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.5)
+project(CO2 LANGUAGES C CXX)
 
-project(CO2 LANGUAGES CXX)
-
+include_directories("webrtc" "webrtc/api" "webrtc/base/" "webrtc/audio_processing" "webrtc/base/abseil" "webrtc/base/jsoncpp" "webrtc/base/rtc_base" "webrtc/base/system_wrappers" "webrtc/base/jsoncpp/include" "speexdsp/include")
+add_subdirectory(webrtc)
+add_subdirectory(speexdsp/libspeexdsp)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-include_directories("webrtc" "webrtc/api" "webrtc/base/" "webrtc/audio_processing" "webrtc/base/abseil" "webrtc/base/jsoncpp" "webrtc/base/rtc_base" "webrtc/base/system_wrappers" "webrtc/base/jsoncpp/include")
-add_subdirectory(webrtc)
+
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -63,4 +64,4 @@ else()
       "tools.h"
     )
 endif()
-target_link_libraries(CO2  PRIVATE Qt5::Widgets Qt5::MultimediaWidgets Qt5::Network Qt5::Multimedia webrtc winmm)
+target_link_libraries(CO2  PRIVATE Qt5::Widgets Qt5::MultimediaWidgets Qt5::Network Qt5::Multimedia webrtc winmm speexdsp)
