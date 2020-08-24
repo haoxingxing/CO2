@@ -9,8 +9,6 @@
 #include <QCryptographicHash>
 #include <QFile>
 
-#include "echo_control.h"
-
 #include "speex/speex_echo.h"
 #include "speex/speex_preprocess.h"
 #include "p2pnetwork.h"

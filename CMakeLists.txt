@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.5)
 project(CO2 LANGUAGES C CXX)
 
-include_directories("webrtc" "webrtc/api" "webrtc/base/" "webrtc/audio_processing" "webrtc/base/abseil" "webrtc/base/jsoncpp" "webrtc/base/rtc_base" "webrtc/base/system_wrappers" "webrtc/base/jsoncpp/include" "speexdsp/include")
-add_subdirectory(webrtc)
+# Libspeexdsp for aec
+include_directories("speexdsp/include")
 add_subdirectory(speexdsp/libspeexdsp)
+
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -64,4 +66,4 @@ else()
       "tools.h"
     )
 endif()
-target_link_libraries(CO2  PRIVATE Qt5::Widgets Qt5::MultimediaWidgets Qt5::Network Qt5::Multimedia webrtc winmm speexdsp)
+target_link_libraries(CO2  PRIVATE Qt5::Widgets Qt5::MultimediaWidgets Qt5::Network Qt5::Multimedia speexdsp)

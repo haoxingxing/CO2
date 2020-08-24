@@ -7,7 +7,6 @@
 #include <QKeyEvent>
 #include <QFileDialog>
 
-using namespace webrtc;
 #include "tools.h"
 MainWindow::MainWindow(QWidget* parent)
 	: QMainWindow(parent)
