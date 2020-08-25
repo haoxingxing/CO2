@@ -16,87 +16,86 @@ QT_BEGIN_NAMESPACE
 
 namespace Ui
 {
-	class MainWindow;
+    class MainWindow;
 }
 
 QT_END_NAMESPACE
-
-#define SAMPLE_SIZE 160
 
 class MainWindow : public QMainWindow
 {
 Q_OBJECT
 
 public:
-	MainWindow(QWidget* parent = nullptr);
-	~MainWindow();
+    MainWindow(QWidget* parent = nullptr);
+    ~MainWindow();
 public slots:
-	void playData();
-	void SwitchedNetwork(P2PNetwork::protocol) const;
+    void playData() const;
+    void SwitchedNetwork(P2PNetwork::protocol) const;
 private slots:
-	void on_pushButton_clicked() const;
+    void on_pushButton_clicked() const;
 
-	void on_InVol_valueChanged(int value) const;
+    void on_InVol_valueChanged(int value) const;
 
-	void on_comboBox_currentIndexChanged(const QString& arg1) const;
+    void on_comboBox_currentIndexChanged(const QString& arg1) const;
 
-	void on_hz_currentTextChanged(const QString& arg1);
+    void on_hz_currentTextChanged(const QString& arg1);
 
-	void on_msg_send_clicked() const;
+    void on_msg_send_clicked() const;
 
-	void on_msg_conn_clicked() const;
+    void on_msg_conn_clicked() const;
 
-	void on_pushButton_2_clicked();
+    void on_pushButton_2_clicked();
 
-	void readMsg();
+    void readMsg();
 
-	void send_voice();
+    void send_voice() const;
+    void on_isaecon_stateChanged(int arg1) const;
+
 private:
-	void switchAudioSample(int target);
-	void switchNetwork(P2PNetwork::protocol);
-	Ui::MainWindow* ui;
+    void switchAudioSample(int target);
+    void switchNetwork(P2PNetwork::protocol);
+    Ui::MainWindow* ui;
 
-	QIODevice* device_output = nullptr;
-	QIODevice* device_input = nullptr;
-	QCryptographicHash ch_;
-	QAudioOutput* output = nullptr;
-	QAudioInput* input = nullptr;
-	QAudioFormat format;
-	bool isconnected = false;
-	bool isudpplaying = false;
-	bool ismsgconnected = false;
-	P2PNetwork* p2p;
-	P2PNetwork* p2p_msg;
+    QIODevice* device_output = nullptr;
+    QIODevice* device_input = nullptr;
+    QCryptographicHash ch_;
+    QAudioOutput* output = nullptr;
+    QAudioInput* input = nullptr;
+    QAudioFormat format;
+    bool isconnected = false;
+    bool isudpplaying = false;
+    bool ismsgconnected = false;
+    P2PNetwork* p2p;
+    P2PNetwork* p2p_msg;
 
-	enum RecvMode
-	{
-		NotStarted,
-		Transforming,
-		EndFile
-	} RM = NotStarted;
+    enum class RecvMode
+    {
+        NotStarted,
+        Transforming,
+        EndFile
+    } RM = RecvMode::NotStarted;
 
-	QFile* file = nullptr;
-	QElapsedTimer startrecv;
+    QFile* file = nullptr;
+    QElapsedTimer startrecv;
 
-	enum SendMode
-	{
-		SNotStarted,
-		SWaitRepsone,
-		STransforming,
-		SWaitMD5
-	} SM = SNotStarted;
+    enum class SendMode 
+    {
+        SNotStarted,
+        SWaitRepsone,
+        STransforming,
+        SWaitMD5
+    } SM = SendMode::SNotStarted;
 
-	QFile* sf = nullptr;
-	QElapsedTimer startsend;
-	QByteArray readbuf;
-	qint64 cur = 0;
-	qint64 size = 0;
-	qint64 rcur = 0;
-	qint64 rsize = 0;
-	QByteArray last_mic_capd;
-	spx_int16_t m_AECBufferOut[SAMPLE_SIZE]{};
-	SpeexEchoState* m_echo_state;
-	SpeexPreprocessState* m_preprocess_state;
+    QFile* sf = nullptr;
+    QElapsedTimer startsend;
+    QByteArray readbuf;
+    qint64 cur = 0;
+    qint64 size = 0;
+    qint64 rcur = 0;
+    qint64 rsize = 0;
+    spx_int16_t *m_AECBufferOut = nullptr;
+    SpeexEchoState* m_echo_state = nullptr;
+    SpeexPreprocessState* m_preprocess_state = nullptr;
 
 };
 #endif // MAINWINDOW_H

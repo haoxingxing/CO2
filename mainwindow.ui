@@ -126,54 +126,14 @@
       <item row="1" column="0">
        <widget class="QComboBox" name="hz">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <property name="editable">
          <bool>false</bool>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>-1</number>
         </property>
-        <item>
-         <property name="text">
-          <string>8000</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>16000</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>32000</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>40000</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>44100</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>48000</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>64000</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>128000</string>
-         </property>
-        </item>
        </widget>
       </item>
       <item row="5" column="0" colspan="2">
@@ -223,10 +183,20 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0" colspan="3">
+      <item row="4" column="0" colspan="2">
        <widget class="QLabel" name="label_2">
         <property name="text">
          <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2">
+       <widget class="QCheckBox" name="isaecon">
+        <property name="text">
+         <string>SpeexAEC</string>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
