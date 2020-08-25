@@ -456,7 +456,7 @@ void MainWindow::switchAudioSample(int target)
         device_input = nullptr;
     }
     if (ui->isaecon->isChecked()) {
-        m_echo_state = speex_echo_state_init(target / 50, target / 5);
+        m_echo_state = speex_echo_state_init(target / 75, target / 3);
         DEBUG << "Initialize Speex AEC" << m_echo_state;
         m_AECBufferOut_size = target / 50;
         DEBUG << "Speex AEC Set SAMPLING_RATE" << speex_echo_ctl(m_echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &target);
