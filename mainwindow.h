@@ -48,14 +48,14 @@ private slots:
 
     void readMsg();
 
-    void send_voice() const;
+    void send_voice();
     void on_isaecon_stateChanged(int arg1) const;
 
 private:
     void switchAudioSample(int target);
     void switchNetwork(P2PNetwork::protocol);
     Ui::MainWindow* ui;
-
+  
     QIODevice* device_output = nullptr;
     QIODevice* device_input = nullptr;
     QCryptographicHash ch_;
@@ -93,7 +93,9 @@ private:
     qint64 size = 0;
     qint64 rcur = 0;
     qint64 rsize = 0;
-    spx_int16_t *m_AECBufferOut = nullptr;
+    spx_int16_t* m_AECBufferOut;
+    int m_AECBufferOut_size = 0;
+    int data_size = 0; 
     SpeexEchoState* m_echo_state = nullptr;
     SpeexPreprocessState* m_preprocess_state = nullptr;
 

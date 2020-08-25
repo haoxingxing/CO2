@@ -382,14 +382,15 @@ void MainWindow::readMsg()
 }
 
 
-void MainWindow::send_voice() const
+void MainWindow::send_voice()
 {
     QByteArray last_mic_capd = device_input->readAll();
     if (ui->isaecon->isChecked()) {
         // get most recent sample, remove echo and repush it on the list to be played    later
         speex_echo_capture(m_echo_state, reinterpret_cast<spx_int16_t*>(last_mic_capd.data()), m_AECBufferOut);
         speex_preprocess_run(m_preprocess_state, m_AECBufferOut);
-        p2p->getSocket()->write(QByteArray(reinterpret_cast<const char*>(m_AECBufferOut)));
+        p2p->getSocket()->write(QByteArray(reinterpret_cast<const char*>(m_AECBufferOut), m_AECBufferOut_size));
+            DEBUG << sizeof(m_AECBufferOut);
     }
     else
     {
@@ -401,7 +402,7 @@ void MainWindow::send_voice() const
 
 void MainWindow::playData() const
 {
-    ui->status->setText("Recvd");
+    ui->status->setText("Playing");
     auto x = p2p->getSocket()->readAll();
     if (ui->isaecon->isChecked()) {
         speex_echo_playback(m_echo_state, reinterpret_cast<const spx_int16_t*>(x.constData()));
@@ -415,12 +416,13 @@ void MainWindow::on_isaecon_stateChanged(int arg1) const
     if (arg1)
     {
         ui->hz->addItems({ "8000","16000","32000" });
+        ui->hz->setCurrentIndex(1);
     }
     else
     {
         ui->hz->addItems({ "8000","16000","32000" ,"48000","96000","128000","240000","320000"});
+        ui->hz->setCurrentIndex(5);
     }
-    ui->hz->setCurrentIndex(1);
 }
 void MainWindow::switchAudioSample(int target)
 {
@@ -430,7 +432,7 @@ void MainWindow::switchAudioSample(int target)
         DEBUG << "Destory Speex" << m_echo_state << m_preprocess_state;
         speex_echo_state_destroy(m_echo_state);
         speex_preprocess_state_destroy(m_preprocess_state);
-        delete m_AECBufferOut;
+        delete[] m_AECBufferOut;
         m_echo_state = nullptr;
         m_preprocess_state = nullptr;
     }
@@ -451,8 +453,7 @@ void MainWindow::switchAudioSample(int target)
         delete input;
         delete output;
         delete device_output;
-        if (device_input != nullptr)
-			delete device_input;
+        delete device_input;
         device_input = nullptr;
     }
     if (ui->isaecon->isChecked()) {
@@ -462,6 +463,7 @@ void MainWindow::switchAudioSample(int target)
         m_preprocess_state = speex_preprocess_state_init(target / 100, target);
         DEBUG << "Initialize Speex Preprocess" << m_preprocess_state;
         m_AECBufferOut = new spx_int16_t[target / 100];
+        m_AECBufferOut_size = target / 50;
     }
     input = new QAudioInput(format);
     output = new QAudioOutput(format);
