@@ -93,7 +93,7 @@ private:
     qint64 size = 0;
     qint64 rcur = 0;
     qint64 rsize = 0;
-    spx_int16_t* m_AECBufferOut;
+    spx_int16_t* m_AECBufferOut{};
     int m_AECBufferOut_size = 0;
     int data_size = 0; 
     SpeexEchoState* m_echo_state = nullptr;

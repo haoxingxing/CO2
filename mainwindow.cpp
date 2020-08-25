@@ -389,8 +389,7 @@ void MainWindow::send_voice()
         // get most recent sample, remove echo and repush it on the list to be played    later
         speex_echo_capture(m_echo_state, reinterpret_cast<spx_int16_t*>(last_mic_capd.data()), m_AECBufferOut);
         speex_preprocess_run(m_preprocess_state, m_AECBufferOut);
-        p2p->getSocket()->write(QByteArray(reinterpret_cast<const char*>(m_AECBufferOut), m_AECBufferOut_size));
-            DEBUG << sizeof(m_AECBufferOut);
+        p2p->getSocket()->write(QByteArray(reinterpret_cast<const char*>(m_AECBufferOut), m_AECBufferOut_size * static_cast<int>(sizeof(spx_int16_t))));
     }
     else
     {
@@ -457,13 +456,13 @@ void MainWindow::switchAudioSample(int target)
         device_input = nullptr;
     }
     if (ui->isaecon->isChecked()) {
-        m_echo_state = speex_echo_state_init(target / 100, target / 10);
+        m_echo_state = speex_echo_state_init(target / 50, target / 5);
         DEBUG << "Initialize Speex AEC" << m_echo_state;
-        DEBUG << "Speex AEC Set SAMPLING_RATE" << speex_echo_ctl(m_echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &target);
-        m_preprocess_state = speex_preprocess_state_init(target / 100, target);
-        DEBUG << "Initialize Speex Preprocess" << m_preprocess_state;
-        m_AECBufferOut = new spx_int16_t[target / 100];
         m_AECBufferOut_size = target / 50;
+        DEBUG << "Speex AEC Set SAMPLING_RATE" << speex_echo_ctl(m_echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &target);
+        m_preprocess_state = speex_preprocess_state_init(m_AECBufferOut_size, target);
+        DEBUG << "Initialize Speex Preprocess" << m_preprocess_state;
+        m_AECBufferOut = new spx_int16_t[m_AECBufferOut_size];
     }
     input = new QAudioInput(format);
     output = new QAudioOutput(format);
