@@ -52,6 +52,7 @@ private slots:
     void on_isaecon_stateChanged(int arg1) const;
 
 private:
+    void log(const QString& str) const;
     void switchAudioSample(int target);
     void switchNetwork(P2PNetwork::protocol);
     Ui::MainWindow* ui;

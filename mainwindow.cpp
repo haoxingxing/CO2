@@ -6,7 +6,7 @@
 #include <QDebug>
 #include <QKeyEvent>
 #include <QFileDialog>
-
+#include <QTime>
 #include "tools.h"
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -26,7 +26,7 @@ MainWindow::MainWindow(QWidget* parent)
     ui->comboBox->addItem("TCP");
     ui->label_2->setDisabled(true);
     ui->isaecon->setChecked(true);
-
+    log("Init Audio Format");
     connect(p2p, &P2PNetwork::disconnected, this, [&]
     {
         ui->comboBox->setDisabled(false);
@@ -37,6 +37,7 @@ MainWindow::MainWindow(QWidget* parent)
         isconnected = false;
         ui->status->setText("Disconnected");
         input->stop();
+        log("Voice Disconnected");
         DEBUG << device_input->disconnect();
     });
 
@@ -51,6 +52,7 @@ MainWindow::MainWindow(QWidget* parent)
         ui->status->setText("Connected");
         isconnected = true;
         device_input = input->start();
+        log("Voice Cconnected");
         connect(device_input, &QIODevice::readyRead, this, &MainWindow::send_voice);
         if (!ismsgconnected)
             ui->msg_connect->setText(p2p->getSocket()->peerAddress().toString());
@@ -68,6 +70,7 @@ MainWindow::MainWindow(QWidget* parent)
         ui->msg_status->setText("Disconnected");
         ui->msg_2->append("Disconnected");
         ui->msg_conn->setText("Connect");
+        log("Message Disconnected");
         ui->msg_send->setDefault(false);
         if (SM > SendMode::SNotStarted)
         {
@@ -92,6 +95,7 @@ MainWindow::MainWindow(QWidget* parent)
         ui->msg_2->append("Connected " + p2p_msg->getSocket()->peerAddress().toString());
         ui->msg_conn->setText("Disconnect");
         ismsgconnected = true;
+        log("Message Connected");
         ui->msg_send->setDefault(true);
         if (!isconnected)
             ui->lineEdit->setText(p2p_msg->getSocket()->peerAddress().toString());
@@ -115,16 +119,37 @@ MainWindow::MainWindow(QWidget* parent)
         });
     connect(p2p, &P2PNetwork::error, this, [&](QAbstractSocket::SocketError, const QString& str)
     {
-            ui->msg_2->append("Voice Connection Error: " + str);
+            log("Voice Connection Error: " + str);
             ui->status->setText(str);
     });
     connect(p2p_msg, &P2PNetwork::error, this, [&](QAbstractSocket::SocketError,const QString& str)
         {
-            ui->msg_2->append("Message Connection Error: " + str);
+            log("Message Connection Error: " + str);
             ui->msg_status->setText(str);
         });
-    p2p_msg->switchProtocol(P2PNetwork::protocol::TCP);
+    connect(ui->commandLinkButton, &QAbstractButton::clicked, this, [&]
+    {
+        QMessageBox msgBox;
+        msgBox.setWindowTitle("About");
+        msgBox.setText("About the Program CO2");
+        msgBox.setInformativeText(
+            "The open-source application is designed for LAN voice and message chat\n"
+            "The Voice AEC algorithm is provided by SpeexDSP\n" 
+            "The GUI Framework is provided by Qt " QT_VERSION_STR "\n"
+            "                               Powered by haoxingxing 2020\n"
+            "\n"
+            "Compiled " __TIMESTAMP__ "\n"
+            "Thanks for using");
+        auto* a = new QPushButton("AboutQt", &msgBox);
+        connect(a, &QPushButton::clicked, &msgBox, &QApplication::aboutQt);
+        msgBox.addButton(a, QMessageBox::NoRole);
+        msgBox.addButton("OK", QMessageBox::AcceptRole);
+        int ret = msgBox.exec();
+
+    });
+	p2p_msg->switchProtocol(P2PNetwork::protocol::TCP);
     ui->pushButton_2->setDisabled(true);
+    log("Main Menu Init");
 
 }
 
@@ -142,7 +167,6 @@ MainWindow::~MainWindow()
 
 void MainWindow::SwitchedNetwork(P2PNetwork::protocol pro) const
 {
-    DEBUG << static_cast<int>(pro);
     ui->status->setText("Ready");
 }
 
@@ -154,11 +178,13 @@ void MainWindow::on_pushButton_clicked() const
     ui->hz->setDisabled(true);
     if (!isconnected)
     {
+        log("Voice Connecting");;
         ui->pushButton->setText("Connecting");
         p2p->connectToHost(ui->lineEdit->text(), 1002);
     }
     else
     {
+        log("Voice Disconnecting");;
         p2p->disconnectFromHost();
     }
 }
@@ -171,6 +197,7 @@ void MainWindow::on_InVol_valueChanged(int value) const
 
 void MainWindow::on_comboBox_currentIndexChanged(const QString& arg1) const
 {
+    log("Voice Switch Network Protocol to " + arg1);;
     if (arg1 == "UDP")
         p2p->switchProtocol(P2PNetwork::protocol::UDP);
     else if (arg1 == "TCP")
@@ -181,6 +208,7 @@ void MainWindow::on_comboBox_currentIndexChanged(const QString& arg1) const
 
 void MainWindow::on_hz_currentTextChanged(const QString& arg1)
 {
+    log("Switch Voice Sample Rate to " + arg1);;
     switchAudioSample(arg1.toInt());
 }
 
@@ -203,11 +231,13 @@ void MainWindow::on_msg_conn_clicked() const
     ui->msg_connect->setDisabled(true);
     if (!ismsgconnected)
     {
+        log("Message Connecting");;
         ui->msg_conn->setText("Connecting");
         p2p_msg->connectToHost(ui->msg_connect->text(), 1003);
     }
     else
     {
+        log("Message Disconnecting");;
         p2p_msg->disconnectFromHost();
     }
 }
@@ -218,6 +248,7 @@ void MainWindow::on_pushButton_2_clicked()
     sf = new QFile(x);
     if (!sf->exists())
     {
+        log("File doesn't exist");;
         QMessageBox::critical(this, "File doesn't exist", "Unable to send file");
         return;
     }
@@ -228,7 +259,7 @@ void MainWindow::on_pushButton_2_clicked()
     sf->open(QIODevice::ReadOnly);
     size = sf->size();
     cur = 0;
-    ui->msg_2->append("File Transfer Started Default File Name: " + x);
+    log("File Transfer Started Default File Name: " + x);
     DEBUG << "File Transfer Started Default File Name: " + x;
     p2p_msg->getSocket()->write(
         "1" + x.toUtf8().toBase64() + " " + QString::number(size).toUtf8() +" " + (ui->ismd5->isChecked()? "1" : "0") + "\n");
@@ -251,7 +282,7 @@ void MainWindow::readMsg()
     case '1':
         {
             auto n = data.mid(1).split(' ');
-            ui->msg_2->append(
+            log(
                 "[" + p2p_msg->getSocket()->peerAddress().toString() + "] File Transfer Started Default File Name: "
                 + QByteArray::fromBase64(n[0]));
             file = new QFile(QFileDialog::getSaveFileName(this, "Find place to drop", QByteArray::fromBase64(n[0])),
@@ -292,20 +323,20 @@ void MainWindow::readMsg()
         file->flush();
         file->close();
         file->deleteLater();
-        ui->msg_2->append(
+        log(
             "Recvd " + QString::number(100.0 * rcur / rsize, 'f', 2) + "% " +
             QString::number(0.001 * rcur / startrecv.elapsed(), 'f', 2) + " MB/s " +
             QString::number(rcur / 1000000.0, 'f', 3) + "/" + QString::number(rsize / 1000000.0, 'f', 3) + " MB");
         rsize = 0;
         rcur = 0;
         if (ui->ismd5->isChecked()) {
-            ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "] Remote MD5 " + data);
-            ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "] Local  MD5 " + ch_.result().toHex());
+            log("[" + p2p_msg->getSocket()->peerAddress().toString() + "] Remote MD5 " + data);
+            log("[" + p2p_msg->getSocket()->peerAddress().toString() + "] Local  MD5 " + ch_.result().toHex());
             p2p_msg->getSocket()->write("5" + ch_.result().toHex() + "\n");
         }
         ui->ismd5->setDisabled(false);
         ui->msg_status->setText("Recv Finished");
-        ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "] File Transfer Ended");
+        log ("[" + p2p_msg->getSocket()->peerAddress().toString() + "] File Transfer Ended");
         ui->pushButton_2->setText("Send File");
         ui->pushButton_2->setDisabled(false);
         RM = RecvMode::NotStarted;
@@ -337,7 +368,7 @@ void MainWindow::readMsg()
         else
         {
             SM = SendMode::SWaitMD5;
-            ui->msg_2->append(
+            log(
                 "Sent " + QString::number(cur * 1.0 / size * 100, 'f', 2) + "% " + (startsend.elapsed() > 0
                     ? QString::number(
                         0.001 * cur
@@ -348,16 +379,17 @@ void MainWindow::readMsg()
                 + QString::number(cur / 1000000.0, 'f', 3) + "/" + QString::number(size / 1000000.0, 'f', 3) +
                 " MB");
             if (ui->ismd5->isChecked()) {
-                ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "] Local  MD5 " + ch_.result().toHex());
+                log("[" + p2p_msg->getSocket()->peerAddress().toString() + "] Local  MD5 " + ch_.result().toHex());
                 ui->msg_status->setText("Waiting for MD5 response");
             }
             else
             {
                 ui->ismd5->setDisabled(false);
-                ui->msg_2->append("File Transfer Ended");
+                log ("File Transfer Ended");
                 ui->msg_status->setText("Send Finished");
                 ui->pushButton_2->setText("Send File");
                 ui->pushButton_2->setDisabled(false);
+                SM = SendMode::SNotStarted;
             }
             p2p_msg->getSocket()->write("3" + (ui->ismd5->isChecked() ? ch_.result().toHex() : "" )+ "\n");
             sf->deleteLater();
@@ -370,8 +402,8 @@ void MainWindow::readMsg()
         SM = SendMode::SNotStarted;
         data = data.mid(1);
         ui->msg_status->setText("Send Finished");
-        ui->msg_2->append("[" + p2p_msg->getSocket()->peerAddress().toString() + "] Remote MD5 " + data);
-        ui->msg_2->append("File Transfer Ended");
+        log("[" + p2p_msg->getSocket()->peerAddress().toString() + "] Remote MD5 " + data);
+        log("File Transfer Ended");
         ui->ismd5->setDisabled(false);
         ui->pushButton_2->setText("Send File");
         ui->pushButton_2->setDisabled(false);
@@ -415,19 +447,26 @@ void MainWindow::on_isaecon_stateChanged(int arg1) const
     if (arg1)
     {
         ui->hz->addItems({ "8000","16000","32000" });
-        ui->hz->setCurrentIndex(1);
+        log("Speex AEC ON");
     }
     else
     {
         ui->hz->addItems({ "8000","16000","32000" ,"48000","96000","128000","240000","320000"});
-        ui->hz->setCurrentIndex(5);
+        log("Speex AEC OFF");
     }
 }
+
+inline void MainWindow::log(const QString& str) const
+{
+    ui->msg_2->append(QTime::currentTime().toString() + " " + str);
+}
+
 void MainWindow::switchAudioSample(int target)
 {
     if (target == 0)
         return;
     if (m_echo_state != nullptr) {
+        log("Destory SpeexDSP");
         DEBUG << "Destory Speex" << m_echo_state << m_preprocess_state;
         speex_echo_state_destroy(m_echo_state);
         speex_preprocess_state_destroy(m_preprocess_state);
@@ -435,12 +474,8 @@ void MainWindow::switchAudioSample(int target)
         m_echo_state = nullptr;
         m_preprocess_state = nullptr;
     }
-    format.setSampleRate(target);
-    const QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
-    if (!info.isFormatSupported(format))
-        format = info.nearestFormat(format);
-    ui->label_2->setText(QString::number(format.sampleRate() / 1000.0) + "kHz " + QString(ui->isaecon->isChecked() ? "AEC ON" : "AEC OFF"));
     if (input != nullptr) {
+        log("Destory Qt Audio");
         // ReSharper disable once CppExpressionWithoutSideEffects
         input->disconnect();
         // ReSharper disable once CppExpressionWithoutSideEffects
@@ -455,18 +490,27 @@ void MainWindow::switchAudioSample(int target)
         delete device_input;
         device_input = nullptr;
     }
+    format.setSampleRate(target);
+    log("Reset format");
+    const QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
+    if (!info.isFormatSupported(format))
+        format = info.nearestFormat(format);
+    ui->label_2->setText(QString::number(format.sampleRate() / 1000.0) + "kHz " + QString(ui->isaecon->isChecked() ? "AEC ON" : "AEC OFF"));
+    log("Init Qt Audio");
+    input = new QAudioInput(format);
+    output = new QAudioOutput(format);
+    input->setVolume(ui->InVol->value() / 99.0);
+    device_output = output->start();
     if (ui->isaecon->isChecked()) {
-        m_echo_state = speex_echo_state_init(target / 75, target / 3);
+        log("Init SpeexDSP");
+        m_echo_state = speex_echo_state_init(target / 100, target / 10);
         DEBUG << "Initialize Speex AEC" << m_echo_state;
-        m_AECBufferOut_size = target / 50;
+        m_AECBufferOut_size = target / 100;
         DEBUG << "Speex AEC Set SAMPLING_RATE" << speex_echo_ctl(m_echo_state, SPEEX_ECHO_SET_SAMPLING_RATE, &target);
         m_preprocess_state = speex_preprocess_state_init(m_AECBufferOut_size, target);
         DEBUG << "Initialize Speex Preprocess" << m_preprocess_state;
         m_AECBufferOut = new spx_int16_t[m_AECBufferOut_size];
     }
-    input = new QAudioInput(format);
-    output = new QAudioOutput(format);
-    input->setVolume(ui->InVol->value() / 99.0);
-    device_output = output->start();
+
     ui->status->setText("Ready");
 }
