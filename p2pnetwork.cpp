@@ -1,12 +1,13 @@
 #include "p2pnetwork.h"
 #include "tools.h"
-const char* name_protocol[] = {"None","UDP", "TCP", };
-const char* name_curtcpst[] = {"BLANK","LISTENING","CONNECTING","CONNECTED", };
-const char* name_curudpst[] = {"BLANK","LISTENING" , "CONNECTED",};
+const char* name_protocol[] = {"None", "UDP", "TCP",};
+const char* name_curtcpst[] = {"BLANK", "LISTENING", "CONNECTING", "CONNECTED",};
+const char* name_curudpst[] = {"BLANK", "LISTENING", "CONNECTED",};
 //#define P2PNETWORK_STATUS "status:" << tcpS << tcpC << name_curtcpst[static_cast<int>(CurTCPSTATUS)] << udp << name_curudpst[static_cast<int>(CurUDPSTATUS)] << name_protocol[static_cast<int>(_protocol)]  // NOLINT(cppcoreguidelines-macro-usage)
 #define P2PNETWORK_STATUS ""
 
-P2PNetwork::P2PNetwork(QObject* parent, QHostAddress bind_address,int port) : QObject(parent),bindaddress(bind_address), port(port)
+P2PNetwork::P2PNetwork(QObject* parent, QHostAddress bind_address, int port) : QObject(parent),
+                                                                               bindaddress(bind_address), port(port)
 {
 	connect(this, &P2PNetwork::protocolSwitched, this, [&](protocol p)
 	{
@@ -22,7 +23,7 @@ P2PNetwork::P2PNetwork(QObject* parent, QHostAddress bind_address,int port) : QO
 	});
 	connect(this, &P2PNetwork::error, this, [&](QAbstractSocket::SocketError e, const QString& str)
 	{
-			DEBUG << e << str << P2PNETWORK_STATUS;
+		DEBUG << e << str << P2PNETWORK_STATUS;
 	});
 }
 
@@ -52,7 +53,6 @@ void P2PNetwork::switchProtocol(protocol target)
 		break;
 	}
 	emit protocolSwitched(_protocol);
-
 }
 
 QAbstractSocket* P2PNetwork::getSocket() const
@@ -99,15 +99,17 @@ void P2PNetwork::connectToHost(const QString& host, int port)
 			destoryTcpSocket();
 			restartTCP();
 		});
-		connect(tcpC, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, [&](QAbstractSocket::SocketError e)
-		{
-				emit error(e, tcpC->errorString());
-				if (CurTCPSTATUS == TCP_status::CONNECTING) {
-					emit disconnected();
-					destoryTcpSocket();
-					restartTCP();
-				}
-		});
+		connect(tcpC, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this,
+		        [&](QAbstractSocket::SocketError e)
+		        {
+			        emit error(e, tcpC->errorString());
+			        if (CurTCPSTATUS == TCP_status::CONNECTING)
+			        {
+				        emit disconnected();
+				        destoryTcpSocket();
+				        restartTCP();
+			        }
+		        });
 	}
 	getSocket()->connectToHost(host, port);
 }
@@ -174,11 +176,12 @@ void P2PNetwork::initUDP()
 		CurUDPSTATUS = UDP_status::CONNECTED;
 		emit connected();
 	});
-	connect(udp, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, [&](QAbstractSocket::SocketError e)
-		{
-			emit error(e, udp->errorString());
-			emit disconnected();
-		});
+	connect(udp, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this,
+	        [&](QAbstractSocket::SocketError e)
+	        {
+		        emit error(e, udp->errorString());
+		        emit disconnected();
+	        });
 	connect(udp, &QUdpSocket::disconnected, this, [&]
 	{
 		emit disconnected(); //CleanUp Or Crash
@@ -225,9 +228,9 @@ void P2PNetwork::initTCP()
 	tcpS = new QTcpServer(this);
 	tcpS->setMaxPendingConnections(1);
 	connect(tcpS, &QTcpServer::acceptError, this, [&](QAbstractSocket::SocketError e)
-		{
-			emit error(e, tcpS->errorString());
-		});
+	{
+		emit error(e, tcpS->errorString());
+	});
 
 	connect(tcpS, &QTcpServer::newConnection, this, [&]
 	{
@@ -235,10 +238,11 @@ void P2PNetwork::initTCP()
 		stopTCP();
 		tcpC->setParent(this);
 		CurTCPSTATUS = TCP_status::CONNECTED;
-		connect(tcpC, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, [&](QAbstractSocket::SocketError e)
-			{
-				emit error(e, tcpC->errorString());
-			});
+		connect(tcpC, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this,
+		        [&](QAbstractSocket::SocketError e)
+		        {
+			        emit error(e, tcpC->errorString());
+		        });
 		connect(tcpC, &QTcpSocket::disconnected, this, [&]
 		{
 			if (CurTCPSTATUS == TCP_status::CONNECTED)

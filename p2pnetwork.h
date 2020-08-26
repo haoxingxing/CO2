@@ -16,17 +16,17 @@ public:
 		TCP,
 	};
 
-	P2PNetwork(QObject* parent, QHostAddress bind_address,int port);
+	P2PNetwork(QObject* parent, QHostAddress bind_address, int port);
 	void switchProtocol(protocol target);
 	QAbstractSocket* getSocket() const;
 	void connectToHost(const QString& host, int port);
 	void disconnectFromHost() const;
-	protocol GetProtocol()const { return _protocol; }
+	protocol GetProtocol() const { return _protocol; }
 signals:
 	void disconnected();
 	void connected();
 	void protocolSwitched(protocol);
-	void error(QAbstractSocket::SocketError,QString errstr);
+	void error(QAbstractSocket::SocketError, QString errstr);
 private:
 	void destoryTCP();
 	void destoryUDP();
@@ -40,13 +40,15 @@ private:
 	QTcpServer* tcpS = nullptr;
 	QHostAddress bindaddress;
 	protocol _protocol = protocol::None;
+
 	enum class TCP_status
 	{
 		BLANK,
 		LISTENING,
 		CONNECTING,
 		CONNECTED,
-	}CurTCPSTATUS = TCP_status::BLANK;
+	} CurTCPSTATUS = TCP_status::BLANK;
+
 	enum class UDP_status
 	{
 		BLANK,
